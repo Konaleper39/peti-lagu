@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -147,7 +147,6 @@
     width: 26px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color: var(--amber-dim);
   }
   .folder-row .ficon svg{ width:19px; height:19px; }
-  .folder-row.playlist-folder .ficon{ color: var(--amber); }
   .folder-row .name{ font-size: 14.5px; flex:1; }
   .folder-row .chev{ color: var(--text-dim); flex-shrink:0; }
   .folder-row .chev svg{ width:16px; height:16px; }
@@ -164,14 +163,18 @@
   }
   .track.playing .name{ color: var(--amber); }
   .track .sub{ font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
-  
-  .fav-btn{
-    background:none; border:none; color: var(--line);
-    padding: 6px; cursor:pointer; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
+
+  .queue-btn{
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--amber-dim);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    flex-shrink: 0;
   }
-  .fav-btn.active{ color: var(--amber); }
-  .fav-btn svg{ width: 18px; height: 18px; }
+  .queue-btn:active{ background: var(--amber); color: #221407; }
 
   .empty-search{ text-align:center; color: var(--text-dim); font-size: 13.5px; padding: 40px 20px; }
 
@@ -218,8 +221,8 @@
   #collapse-btn svg{ width:22px; height:22px; }
   .eyebrow{ font-size: 12px; color: var(--text-dim); }
   .art-big{
-    margin: 30px auto 0;
-    width: min(72vw, 300px); height: min(72vw, 300px);
+    margin: 20px auto 0;
+    width: min(68vw, 280px); height: min(68vw, 280px);
     border-radius: 16px;
     background: radial-gradient(circle at 32% 28%, #5a4361, #241a28 72%);
     border: 1px solid var(--line);
@@ -229,12 +232,13 @@
   }
   .art-big img{ width:100%; height:100%; object-fit:cover; display:none; }
   .art-big svg{ width: 30%; height:30%; opacity:0.85; flex-shrink:0; }
-  .track-info{ margin-top: 30px; text-align:center; }
-  .track-info .title{ font-size: 21px; font-weight: 500; line-height:1.3; }
-  .track-info .artist{ font-size: 14.5px; color: var(--amber); margin-top: 6px; }
-  .track-info .album{ font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
-  .track-info .sub{ font-size: 12px; color: var(--text-dim); margin-top: 8px; }
-  .seek-row{ margin-top: 22px; }
+  .track-info{ margin-top: 24px; text-align:center; }
+  .track-info .title{ font-size: 20px; font-weight: 500; line-height:1.3; }
+  .track-info .artist{ font-size: 14px; color: var(--amber); margin-top: 5px; }
+  .track-info .album{ font-size: 12px; color: var(--text-dim); margin-top: 3px; }
+  .track-info .sub{ font-size: 11.5px; color: var(--text-dim); margin-top: 6px; }
+  
+  .seek-row{ margin-top: 18px; }
   #seek{
     -webkit-appearance:none; width:100%; height: 4px; border-radius: 2px;
     background: var(--line); outline:none;
@@ -244,19 +248,47 @@
     background: var(--amber); cursor:pointer; margin-top:-5px;
   }
   .time-row{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--text-dim); margin-top:6px; font-variant-numeric: tabular-nums; }
+  
   .controls-row{
-    display:flex; align-items:center; justify-content:center; gap: 30px;
-    margin-top: 22px;
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top: 18px; padding: 0 10px;
   }
+  .mode-btn{
+    background:none; border:none; color: var(--text-dim); padding: 8px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; position: relative;
+  }
+  .mode-btn.active{ color: var(--amber); }
+  .mode-btn svg{ width: 22px; height: 22px; }
+  .mode-badge{
+    position: absolute; top: 4px; right: 2px; font-size: 9px; font-weight: bold;
+    background: var(--amber); color: #221407; border-radius: 50%; width: 13px; height: 13px;
+    display: none; align-items:center; justify-content:center;
+  }
+  
   #play-big{
-    width:64px; height:64px; border-radius:50%;
+    width:62px; height:62px; border-radius:50%;
     background: var(--amber); color:#221407;
     border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   #play-big svg{ width:26px; height:26px; }
-  .skip-btn svg{ width: 28px; height:28px; color: var(--text); }
+  .skip-btn svg{ width: 26px; height:26px; color: var(--text); }
   .skip-btn{ background:none; border:none; cursor:pointer; }
-  .bottom-hint{ text-align:center; font-size:11.5px; color: var(--text-dim); margin-top: auto; padding-top: 16px; }
+  .bottom-hint{ text-align:center; font-size:11.5px; color: var(--text-dim); margin-top: auto; padding-top: 14px; }
+
+  #toast{
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-raised);
+    border: 1px solid var(--amber-dim);
+    color: var(--text);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    display: none;
+    z-index: 100;
+  }
 
   ::-webkit-scrollbar{ width: 0; height: 0; }
 </style>
@@ -269,9 +301,9 @@
     <div class="brand">
       <div>
         <h1>Peti<span> Lagu</span></h1>
-        <p class="tagline">Koleksi lagu kau, terus dari Google Drive</p>
+        <p class="tagline">Your music collection, straight from Google Drive</p>
       </div>
-      <button id="signin-btn">Log masuk</button>
+      <button id="signin-btn">Sign in</button>
       <div class="user-chip" id="user-chip"></div>
     </div>
   </header>
@@ -282,32 +314,32 @@
   </div>
 
   <div class="search-wrap" id="search-wrap">
-    <input type="text" id="search-input" placeholder="Cari dalam senarai ni…" autocomplete="off" />
+    <input type="text" id="search-input" placeholder="Search this folder…" autocomplete="off" />
   </div>
 
   <div class="state-panel" id="state-signed-out">
     <div class="glyph">🎙️</div>
-    <h2>Belum log masuk lagi</h2>
-    <p>Log masuk dengan akaun Google yang sama dengan tempat folder MDP kau disimpan.</p>
+    <h2>Not signed in</h2>
+    <p>Sign in with the Google account that contains your MDP folder.</p>
   </div>
 
   <div class="state-panel" id="state-loading" style="display:none;">
     <div class="glyph">…</div>
-    <h2>Mengimbas folder</h2>
-    <p>Sekejap je, tengah cari lagu dan sub-folder.</p>
+    <h2>Scanning folder</h2>
+    <p>One moment, fetching songs and subfolders.</p>
   </div>
 
   <div class="state-panel" id="state-error" style="display:none;">
     <div class="glyph">⚠️</div>
-    <h2>Something's off</h2>
-    <p id="error-msg">Tak dapat sambung ke Google Drive.</p>
-    <button class="retry-btn" id="retry-btn">Cuba lagi</button>
+    <h2>Something went wrong</h2>
+    <p id="error-msg">Unable to connect to Google Drive.</p>
+    <button class="retry-btn" id="retry-btn">Try again</button>
   </div>
 
   <div class="state-panel" id="state-empty" style="display:none;">
     <div class="glyph">📂</div>
-    <h2>Folder ni kosong</h2>
-    <p>Tiada sub-folder atau fail audio dalam folder ni.</p>
+    <h2>This folder is empty</h2>
+    <p>No subfolders or audio files found.</p>
   </div>
 
   <div id="list-wrap"></div>
@@ -320,7 +352,7 @@
     </div>
     <div class="info">
       <div class="name" id="mini-name">—</div>
-      <div class="status" id="mini-status">Tiada lagu dimainkan</div>
+      <div class="status" id="mini-status">No track playing</div>
     </div>
     <button class="ctrl-btn" id="mini-play">
       <svg id="mini-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -330,7 +362,7 @@
   <div id="full-player">
     <div class="top-row">
       <button id="collapse-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-      <div class="eyebrow">Sedang main</div>
+      <div class="eyebrow">Now Playing</div>
       <div style="width:22px;"></div>
     </div>
     <div class="art-big">
@@ -348,14 +380,23 @@
       <div class="time-row"><span id="time-cur">0:00</span><span id="time-dur">0:00</span></div>
     </div>
     <div class="controls-row">
+      <button class="mode-btn" id="shuffle-btn" title="Shuffle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+      </button>
       <button class="skip-btn" id="prev-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
       <button id="play-big">
         <svg id="big-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       </button>
       <button class="skip-btn" id="next-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg></button>
+      <button class="mode-btn" id="loop-btn" title="Loop Mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+        <span class="mode-badge" id="loop-badge">1</span>
+      </button>
     </div>
-    <div class="bottom-hint">Streaming terus dari Google Drive kau</div>
+    <div class="bottom-hint" id="queue-hint">Streaming directly from your Google Drive</div>
   </div>
+
+  <div id="toast"></div>
 
 </div>
 
@@ -368,14 +409,11 @@ const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
 const ROOT_NAME = "MDP";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
-const PLAYLIST_FOLDER_ID = "__CUSTOM_PLAYLIST__";
 
 let accessToken = localStorage.getItem("petilagu_token") || null;
 let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
 let tokenClient = null;
 let authIntent = "initial";
-
-let customPlaylist = JSON.parse(localStorage.getItem("petilagu_custom_playlist") || "[]");
 
 let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
 let currentFolders = [];
@@ -383,7 +421,12 @@ let tracks = [];
 let filteredFolders = [];
 let filteredTracks = [];
 
-let currentIndex = -1;
+// Dynamic Play Queue & Modes
+let playQueue = [];
+let queueIndex = -1;
+let isShuffle = false;
+let loopMode = 0; // 0: Off, 1: Loop All, 2: Loop One
+
 let currentPlayingId = null;
 let currentArtUrl = null;
 let currentAudioBlobUrl = null;
@@ -395,6 +438,14 @@ let preloadedTrackId = null;
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
+
+function showToast(msg){
+  const t = $("toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = "none"; }, 2000);
+}
 
 function showState(name){
   ["state-signed-out","state-loading","state-error","state-empty"].forEach(id=>{
@@ -416,11 +467,11 @@ window.onload = () => {
       if (resp.error){
         console.error(resp.error);
         if (authIntent === "track"){
-          $("mini-status").textContent = "Sesi log masuk tamat";
-          $("full-status").textContent = "Sesi log masuk tamat";
+          $("mini-status").textContent = "Session expired";
+          $("full-status").textContent = "Session expired";
         } else {
           showState("state-error");
-          $("error-msg").textContent = "Log masuk gagal. Sila cuba lagi.";
+          $("error-msg").textContent = "Sign-in failed. Please try again.";
         }
         return;
       }
@@ -429,8 +480,8 @@ window.onload = () => {
       localStorage.setItem("petilagu_token", accessToken);
       localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
 
-      if (authIntent === "track" && currentIndex !== -1){
-        playTrack(currentIndex);
+      if (authIntent === "track" && queueIndex !== -1){
+        playQueueTrack(queueIndex);
       } else if (authIntent === "folder"){
         loadFolder(currentFolderId());
       } else {
@@ -464,38 +515,12 @@ $("retry-btn").addEventListener("click", () => {
 function onSignedIn(){
   $("signin-btn").style.display = "none";
   $("user-chip").style.display = "flex";
-  $("user-chip").innerHTML = `<span>Log masuk ✓</span>`;
+  $("user-chip").innerHTML = `<span>Signed in ✓</span>`;
   breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
   loadFolder(ROOT_FOLDER_ID);
 }
 
 function currentFolderId(){ return breadcrumbPath[breadcrumbPath.length - 1].id; }
-
-// ====== PLAYLIST STORAGE ======
-function isTrackInPlaylist(id){
-  return customPlaylist.some(t => t.id === id);
-}
-
-function togglePlaylistTrack(track, e){
-  if (e) e.stopPropagation();
-  const idx = customPlaylist.findIndex(t => t.id === track.id);
-  if (idx > -1){
-    customPlaylist.splice(idx, 1);
-  } else {
-    customPlaylist.push({
-      id: track.id,
-      name: track.name,
-      mimeType: track.mimeType
-    });
-  }
-  localStorage.setItem("petilagu_custom_playlist", JSON.stringify(customPlaylist));
-  
-  if (currentFolderId() === PLAYLIST_FOLDER_ID){
-    tracks = [...customPlaylist];
-    filteredTracks = tracks;
-  }
-  renderList();
-}
 
 // ====== BREADCRUMB ======
 function renderBreadcrumb(){
@@ -527,29 +552,12 @@ function enterFolder(id, name){
   loadFolder(id);
 }
 
-// ====== FOLDER LOADING ======
+// ====== DRIVE LISTING ======
 async function loadFolder(folderId){
   showState("state-loading");
   renderBreadcrumb();
   currentFolders = [];
   tracks = [];
-
-  // Folder Maya: Custom Playlist
-  if (folderId === PLAYLIST_FOLDER_ID){
-    tracks = [...customPlaylist];
-    filteredFolders = [];
-    filteredTracks = tracks;
-    if (tracks.length === 0){
-      showState("state-empty");
-      $("state-empty").querySelector("h2").textContent = "Playlist kosong";
-      $("state-empty").querySelector("p").textContent = "Tekan ikon bintang ⭐ pada mana-mana lagu untuk masukkan ke dalam playlist.";
-      return;
-    }
-    renderList();
-    showState(null);
-    return;
-  }
-
   try{
     let pageToken = null;
     const q = `'${folderId}' in parents and trashed = false and (mimeType = '${FOLDER_MIME}' or mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.audio')`;
@@ -576,13 +584,11 @@ async function loadFolder(folderId){
       pageToken = data.nextPageToken;
     } while(pageToken);
 
-    currentFolders.sort((a,b) => a.name.localeCompare(b.name, "ms"));
-    tracks.sort((a,b) => a.name.localeCompare(b.name, "ms"));
+    currentFolders.sort((a,b) => a.name.localeCompare(b.name, "en"));
+    tracks.sort((a,b) => a.name.localeCompare(b.name, "en"));
 
-    if (currentFolders.length === 0 && tracks.length === 0 && folderId !== ROOT_FOLDER_ID){
+    if (currentFolders.length === 0 && tracks.length === 0){
       showState("state-empty");
-      $("state-empty").querySelector("h2").textContent = "Folder ni kosong";
-      $("state-empty").querySelector("p").textContent = "Tiada sub-folder atau fail audio dalam folder ni.";
       return;
     }
     filteredFolders = currentFolders;
@@ -592,7 +598,7 @@ async function loadFolder(folderId){
   } catch(err){
     console.error(err);
     showState("state-error");
-    $("error-msg").textContent = "Tak dapat sambung ke Google Drive. Sila cuba lagi.";
+    $("error-msg").textContent = "Unable to connect to Google Drive. Please try again.";
   }
 }
 
@@ -602,31 +608,16 @@ function stripExt(name){
 
 function renderList(){
   const wrap = $("list-wrap");
-  const isRoot = currentFolderId() === ROOT_FOLDER_ID;
-  const hasResults = (isRoot || filteredFolders.length > 0 || filteredTracks.length > 0);
-
+  const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;
   if (!hasResults){
-    wrap.innerHTML = `<div class="empty-search">Tiada padan dengan carian tu.</div>`;
+    wrap.innerHTML = `<div class="empty-search">No matching items found.</div>`;
     return;
   }
 
   let html = "";
 
-  // Di root, paparkan tab Playlist Saya
-  if (isRoot){
-    html += `<div class="section-label">PLAYLIST</div>`;
-    html += `
-      <div class="folder-row playlist-folder" data-folder-id="${PLAYLIST_FOLDER_ID}" data-folder-name="⭐ Playlist Saya">
-        <div class="ficon">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-        </div>
-        <div class="name">⭐ Playlist Saya (${customPlaylist.length})</div>
-        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
-      </div>`;
-  }
-
   if (filteredFolders.length > 0){
-    html += `<div class="section-label">FOLDER</div>`;
+    html += `<div class="section-label">FOLDERS</div>`;
     html += filteredFolders.map(f => `
       <div class="folder-row" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}">
         <div class="ficon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a1 1 0 00-1 1v14a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1h-9l-2-3z"/></svg></div>
@@ -636,21 +627,16 @@ function renderList(){
   }
 
   if (filteredTracks.length > 0){
-    html += `<div class="section-label">LAGU</div>`;
+    html += `<div class="section-label">TRACKS</div>`;
     html += filteredTracks.map((t, i) => {
       const playing = t.id === currentPlayingId;
-      const isFav = isTrackInPlaylist(t.id);
-      return `<div class="track ${playing?'playing':''}" data-index="${tracks.indexOf(t)}">
+      return `<div class="track ${playing?'playing':''}" data-id="${t.id}">
         <div class="idx">${playing && isPlaying ? '♪' : i+1}</div>
         <div class="meta">
           <div class="name">${escapeHtml(stripExt(t.name))}</div>
           <div class="sub">${(t.mimeType||'').replace('audio/','').toUpperCase()}</div>
         </div>
-        <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${t.id}" title="${isFav ? 'Buang dari playlist' : 'Tambah ke playlist'}">
-          <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
-          </svg>
-        </button>
+        <button class="queue-btn" data-id="${t.id}">+ Queue</button>
       </div>`;
     }).join("");
   }
@@ -661,13 +647,23 @@ function renderList(){
     el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));
   });
   wrap.querySelectorAll(".track").forEach(el => {
-    el.addEventListener("click", () => playTrack(parseInt(el.dataset.index)));
+    el.addEventListener("click", (e) => {
+      if (e.target.classList.contains("queue-btn")) return;
+      const trackId = el.dataset.id;
+      const trackIndex = tracks.findIndex(t => t.id === trackId);
+      if (trackIndex > -1){
+        playQueue = [...tracks];
+        queueIndex = trackIndex;
+        playQueueTrack(queueIndex);
+      }
+    });
   });
-  wrap.querySelectorAll(".fav-btn").forEach(btn => {
+  wrap.querySelectorAll(".queue-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
-      const id = btn.dataset.id;
-      const trackObj = tracks.find(t => t.id === id) || customPlaylist.find(t => t.id === id);
-      if (trackObj) togglePlaylistTrack(trackObj, e);
+      e.stopPropagation();
+      const trackId = btn.dataset.id;
+      const selectedTrack = tracks.find(t => t.id === trackId);
+      if (selectedTrack) addToQueue(selectedTrack);
     });
   });
 }
@@ -682,6 +678,86 @@ $("search-input").addEventListener("input", (e) => {
   filteredTracks = q ? tracks.filter(t => t.name.toLowerCase().includes(q)) : tracks;
   renderList();
 });
+
+// ====== QUEUE & PLAYBACK MODES ======
+function addToQueue(track){
+  if (playQueue.length === 0){
+    playQueue = [track];
+    queueIndex = 0;
+    playQueueTrack(0);
+    return;
+  }
+  playQueue.push(track);
+  showToast(`Added to Queue: ${stripExt(track.name)}`);
+  updateQueueHint();
+  preloadNextTrack();
+}
+
+function updateQueueHint(){
+  const remaining = playQueue.length - 1 - queueIndex;
+  $("queue-hint").textContent = remaining > 0 ? `${remaining} more track${remaining === 1 ? '' : 's'} in Queue` : "Streaming directly from your Google Drive";
+}
+
+// Shuffle Toggle
+$("shuffle-btn").addEventListener("click", () => {
+  isShuffle = !isShuffle;
+  $("shuffle-btn").classList.toggle("active", isShuffle);
+  showToast(isShuffle ? "Shuffle On 🔀" : "Shuffle Off");
+});
+
+// Loop Mode Toggle (0: Off -> 1: Loop All -> 2: Loop One)
+$("loop-btn").addEventListener("click", () => {
+  loopMode = (loopMode + 1) % 3;
+  const loopBtn = $("loop-btn");
+  const loopBadge = $("loop-badge");
+
+  if (loopMode === 0){
+    loopBtn.classList.remove("active");
+    loopBadge.style.display = "none";
+    showToast("Repeat Off");
+  } else if (loopMode === 1){
+    loopBtn.classList.add("active");
+    loopBadge.style.display = "none";
+    showToast("Repeat All 🔁");
+  } else if (loopMode === 2){
+    loopBtn.classList.add("active");
+    loopBadge.style.display = "flex";
+    showToast("Repeat One 🔂");
+  }
+});
+
+function getNextTrackIndex(){
+  if (playQueue.length === 0) return -1;
+  if (loopMode === 2) return queueIndex;
+
+  if (isShuffle){
+    if (playQueue.length === 1) return 0;
+    let nextIdx = queueIndex;
+    while (nextIdx === queueIndex){
+      nextIdx = Math.floor(Math.random() * playQueue.length);
+    }
+    return nextIdx;
+  }
+
+  if (queueIndex < playQueue.length - 1){
+    return queueIndex + 1;
+  } else if (loopMode === 1){
+    return 0;
+  }
+  return -1;
+}
+
+function getPrevTrackIndex(){
+  if (playQueue.length === 0) return -1;
+  if (loopMode === 2) return queueIndex;
+
+  if (queueIndex > 0){
+    return queueIndex - 1;
+  } else if (loopMode === 1){
+    return playQueue.length - 1;
+  }
+  return 0;
+}
 
 // ====== ARTWORK / METADATA ======
 function setArtwork(url){
@@ -709,7 +785,7 @@ function readTagsFromBlob(blob){
     if (typeof jsmediatags === "undefined"){ resolve(null); return; }
     jsmediatags.read(blob, {
       onSuccess: (tag) => resolve(tag.tags || null),
-      onError: (e) => resolve(null)
+      onError: () => resolve(null)
     });
   });
 }
@@ -799,8 +875,9 @@ function setupMediaSessionHandlers(){
 
 // ====== PRELOAD NEXT TRACK ======
 async function preloadNextTrack(){
-  if (currentIndex + 1 < tracks.length){
-    const nextTrack = tracks[currentIndex + 1];
+  const nextIdx = getNextTrackIndex();
+  if (nextIdx !== -1 && nextIdx < playQueue.length){
+    const nextTrack = playQueue[nextIdx];
     if (preloadedTrackId === nextTrack.id && preloadedBlob) return;
     try {
       const res = await fetch(`https://www.googleapis.com/drive/v3/files/${nextTrack.id}?alt=media`, {
@@ -817,20 +894,21 @@ async function preloadNextTrack(){
 }
 
 // ====== PLAYBACK ======
-async function playTrack(index){
-  if (index < 0 || index >= tracks.length) return;
-  currentIndex = index;
-  const track = tracks[index];
+async function playQueueTrack(idx){
+  if (idx < 0 || idx >= playQueue.length) return;
+  queueIndex = idx;
+  const track = playQueue[idx];
   currentPlayingId = track.id;
   const fallbackName = stripExt(track.name);
   const myLoadToken = ++loadToken;
 
   $("mini-player").style.display = "flex";
   resetMetaFields(fallbackName);
-  $("mini-status").textContent = "Memuatkan…";
-  $("full-status").textContent = "Memuatkan…";
+  $("mini-status").textContent = "Loading…";
+  $("full-status").textContent = "Loading…";
   updateMediaSessionMetadata(fallbackName, "", "", null);
   setupMediaSessionHandlers();
+  updateQueueHint();
   renderList();
 
   try{
@@ -876,13 +954,13 @@ async function playTrack(index){
   } catch(err){
     console.error(err);
     if (myLoadToken !== loadToken) return;
-    $("mini-status").textContent = "Ralat memuatkan lagu";
-    $("full-status").textContent = "Ralat memuatkan lagu";
+    $("mini-status").textContent = "Error loading track";
+    $("full-status").textContent = "Error loading track";
   }
 }
 
 function togglePlay(){
-  if (currentIndex === -1) return;
+  if (queueIndex === -1) return;
   if (isPlaying){ audio.pause(); isPlaying = false; }
   else { audio.play(); isPlaying = true; }
   updatePlayIcons();
@@ -896,12 +974,23 @@ function updatePlayIcons(){
     : '<path d="M8 5v14l11-7z"/>';
   $("mini-play-icon").innerHTML = iconPath;
   $("big-play-icon").innerHTML = iconPath;
-  $("mini-status").textContent = isPlaying ? "Sedang main" : "Dijeda";
-  $("full-status").textContent = isPlaying ? "Streaming dari Drive" : "Dijeda";
+  $("mini-status").textContent = isPlaying ? "Playing" : "Paused";
+  $("full-status").textContent = isPlaying ? "Streaming from Drive" : "Paused";
 }
 
-function playNext(){ if (currentIndex < tracks.length - 1) playTrack(currentIndex + 1); }
-function playPrev(){ if (currentIndex > 0) playTrack(currentIndex - 1); }
+function playNext(){ 
+  const nextIdx = getNextTrackIndex();
+  if (nextIdx !== -1) {
+    playQueueTrack(nextIdx);
+  }
+}
+
+function playPrev(){ 
+  const prevIdx = getPrevTrackIndex();
+  if (prevIdx !== -1) {
+    playQueueTrack(prevIdx);
+  }
+}
 
 $("mini-play").addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
 $("play-big").addEventListener("click", togglePlay);
@@ -909,7 +998,12 @@ $("next-btn").addEventListener("click", playNext);
 $("prev-btn").addEventListener("click", playPrev);
 
 audio.addEventListener("ended", () => {
-  playNext();
+  if (loopMode === 2){
+    audio.currentTime = 0;
+    audio.play();
+  } else {
+    playNext();
+  }
 });
 
 $("mini-player").addEventListener("click", () => { $("full-player").style.display = "flex"; });
