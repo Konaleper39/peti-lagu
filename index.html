@@ -657,7 +657,27 @@ async function loadFolder(folderId) {
   }
 }
 
-function stripExt(name) { return name.replace(/\.[^/.]+$/, ""); }
+function stripExt(name) {
+  let clean = name.replace(/\.[^/.]+$/, ""); // Buang format extension (.mp3 dsb)
+  // Gantikan pattern macam _-_ atau -_ atau _- kepada " - "
+  clean = clean.replace(/_+-_+|_+-\s*|\s*-_+/g, " - ");
+  // Gantikan sebarang underscore tunggal berbaki kepada ruang kosong
+  clean = clean.replace(/_/g, " ");
+  // Rapikan ruang kosong berlebihan
+  return clean.replace(/\s+/g, " ").trim();
+}
+
+function parseArtistTitle(rawName) {
+  const clean = stripExt(rawName);
+  if (clean.includes(" - ")) {
+    const parts = clean.split(" - ");
+    return {
+      artist: parts[0].trim(),
+      title: parts.slice(1).join(" - ").trim()
+    };
+  }
+  return { artist: "", title: clean };
+}
 
 function renderList() {
   const wrap = $("list-wrap");
@@ -679,10 +699,11 @@ function renderList() {
     html += `<div class="section-label">TRACKS (HOLD FOR OPTIONS)</div>`;
     html += filteredTracks.map((t) => {
       const isCur = t.id === currentPlayingId;
+     const parsed = parseArtistTitle(t.name);
       return `<div class="track ${isCur ? 'playing' : ''}" data-id="${t.id}">
         <div class="meta" style="flex:1;min-width:0;">
-          <div class="name">${escapeHtml(stripExt(t.name))}</div>
-          <div class="sub">${(t.mimeType||'').replace('audio/','').toUpperCase()}</div>
+          <div class="name">${escapeHtml(parsed.title)}</div>
+          <div class="sub">${escapeHtml(parsed.artist || (t.mimeType||'').replace('audio/','').toUpperCase())}</div>
         </div>
       </div>`;
     }).join("");
