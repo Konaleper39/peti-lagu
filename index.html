@@ -476,7 +476,7 @@
 const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
-const ROOT_NAME = "MDP";
+let rootFolderName = "Drive"; // Nama sandaran sementara
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 let accessToken = localStorage.getItem("petilagu_token") || null;
@@ -484,7 +484,7 @@ let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0",
 let tokenClient = null;
 let authIntent = "initial";
 
-let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
+let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
 let currentFolders = [];
 let tracks = [];
 let filteredFolders = [];
@@ -584,11 +584,25 @@ $("signin-btn").addEventListener("click", () => {
   tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
 });
 
-function onSignedIn() {
+async function onSignedIn() {
   $("signin-btn").style.display = "none";
   $("user-chip").style.display = "flex";
   $("user-chip").innerHTML = `<span>Connected</span>`;
-  breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
+
+  // Tarik nama folder terus dari Google Drive
+  try {
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=name`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.name) rootFolderName = data.name;
+    }
+  } catch (err) {
+    console.error("Gagal dapatkan nama root folder:", err);
+  }
+
+  breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
   loadFolder(ROOT_FOLDER_ID);
 }
 
