@@ -423,11 +423,9 @@ window.onload = () => {
     }
   });
 
-  // Auto-login jika token sedia ada belum tamat tempoh
   if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {
     onSignedIn();
   } else if (accessToken) {
-    // Cuba silent refresh token jika dah hampir luput
     authIntent = "initial";
     tokenClient.requestAccessToken({ prompt: "" });
   }
@@ -680,6 +678,14 @@ function updateMediaSessionMetadata(title, artist, album, artworkUrl){
 
 function setupMediaSessionHandlers(){
   if (!("mediaSession" in navigator)) return;
+
+  navigator.mediaSession.setActionHandler("previoustrack", () => {
+    playPrev();
+  });
+  navigator.mediaSession.setActionHandler("nexttrack", () => {
+    playNext();
+  });
+
   navigator.mediaSession.setActionHandler("play", () => {
     audio.play();
     isPlaying = true;
@@ -687,6 +693,7 @@ function setupMediaSessionHandlers(){
     renderList();
     navigator.mediaSession.playbackState = "playing";
   });
+
   navigator.mediaSession.setActionHandler("pause", () => {
     audio.pause();
     isPlaying = false;
@@ -694,8 +701,11 @@ function setupMediaSessionHandlers(){
     renderList();
     navigator.mediaSession.playbackState = "paused";
   });
-  navigator.mediaSession.setActionHandler("previoustrack", playPrev);
-  navigator.mediaSession.setActionHandler("nexttrack", playNext);
+
+  try {
+    navigator.mediaSession.setActionHandler("seekforward", null);
+    navigator.mediaSession.setActionHandler("seekbackward", null);
+  } catch(e){}
 }
 
 // ====== PLAYBACK (FETCH SECURE BLOB) ======
@@ -712,6 +722,7 @@ async function playTrack(index){
   $("mini-status").textContent = "Memuatkan…";
   $("full-status").textContent = "Memuatkan…";
   updateMediaSessionMetadata(fallbackName, "", "", null);
+  setupMediaSessionHandlers();
   renderList();
 
   try{
@@ -739,9 +750,11 @@ async function playTrack(index){
     isPlaying = true;
     updatePlayIcons();
     renderList();
-    if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.playbackState = "playing";
+      setupMediaSessionHandlers();
+    }
 
-    // Extract tags dari Blob di latar belakang
     applyTags(blob, fallbackName, myLoadToken);
 
   } catch(err){
