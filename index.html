@@ -147,6 +147,7 @@
     width: 26px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color: var(--amber-dim);
   }
   .folder-row .ficon svg{ width:19px; height:19px; }
+  .folder-row.playlist-folder .ficon{ color: var(--amber); }
   .folder-row .name{ font-size: 14.5px; flex:1; }
   .folder-row .chev{ color: var(--text-dim); flex-shrink:0; }
   .folder-row .chev svg{ width:16px; height:16px; }
@@ -163,6 +164,15 @@
   }
   .track.playing .name{ color: var(--amber); }
   .track .sub{ font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  
+  .fav-btn{
+    background:none; border:none; color: var(--line);
+    padding: 6px; cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fav-btn.active{ color: var(--amber); }
+  .fav-btn svg{ width: 18px; height: 18px; }
+
   .empty-search{ text-align:center; color: var(--text-dim); font-size: 13.5px; padding: 40px 20px; }
 
   #mini-player{
@@ -272,7 +282,7 @@
   </div>
 
   <div class="search-wrap" id="search-wrap">
-    <input type="text" id="search-input" placeholder="Cari dalam folder ni…" autocomplete="off" />
+    <input type="text" id="search-input" placeholder="Cari dalam senarai ni…" autocomplete="off" />
   </div>
 
   <div class="state-panel" id="state-signed-out">
@@ -358,11 +368,14 @@ const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
 const ROOT_NAME = "MDP";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
+const PLAYLIST_FOLDER_ID = "__CUSTOM_PLAYLIST__";
 
 let accessToken = localStorage.getItem("petilagu_token") || null;
 let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
 let tokenClient = null;
 let authIntent = "initial";
+
+let customPlaylist = JSON.parse(localStorage.getItem("petilagu_custom_playlist") || "[]");
 
 let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
 let currentFolders = [];
@@ -377,7 +390,6 @@ let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
 
-// Preload Cache for iOS background continuous playback
 let preloadedBlob = null;
 let preloadedTrackId = null;
 
@@ -459,6 +471,32 @@ function onSignedIn(){
 
 function currentFolderId(){ return breadcrumbPath[breadcrumbPath.length - 1].id; }
 
+// ====== PLAYLIST STORAGE ======
+function isTrackInPlaylist(id){
+  return customPlaylist.some(t => t.id === id);
+}
+
+function togglePlaylistTrack(track, e){
+  if (e) e.stopPropagation();
+  const idx = customPlaylist.findIndex(t => t.id === track.id);
+  if (idx > -1){
+    customPlaylist.splice(idx, 1);
+  } else {
+    customPlaylist.push({
+      id: track.id,
+      name: track.name,
+      mimeType: track.mimeType
+    });
+  }
+  localStorage.setItem("petilagu_custom_playlist", JSON.stringify(customPlaylist));
+  
+  if (currentFolderId() === PLAYLIST_FOLDER_ID){
+    tracks = [...customPlaylist];
+    filteredTracks = tracks;
+  }
+  renderList();
+}
+
 // ====== BREADCRUMB ======
 function renderBreadcrumb(){
   $("back-btn").className = breadcrumbPath.length > 1 ? "" : "hidden";
@@ -489,12 +527,29 @@ function enterFolder(id, name){
   loadFolder(id);
 }
 
-// ====== DRIVE LISTING ======
+// ====== FOLDER LOADING ======
 async function loadFolder(folderId){
   showState("state-loading");
   renderBreadcrumb();
   currentFolders = [];
   tracks = [];
+
+  // Folder Maya: Custom Playlist
+  if (folderId === PLAYLIST_FOLDER_ID){
+    tracks = [...customPlaylist];
+    filteredFolders = [];
+    filteredTracks = tracks;
+    if (tracks.length === 0){
+      showState("state-empty");
+      $("state-empty").querySelector("h2").textContent = "Playlist kosong";
+      $("state-empty").querySelector("p").textContent = "Tekan ikon bintang ⭐ pada mana-mana lagu untuk masukkan ke dalam playlist.";
+      return;
+    }
+    renderList();
+    showState(null);
+    return;
+  }
+
   try{
     let pageToken = null;
     const q = `'${folderId}' in parents and trashed = false and (mimeType = '${FOLDER_MIME}' or mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.audio')`;
@@ -524,8 +579,10 @@ async function loadFolder(folderId){
     currentFolders.sort((a,b) => a.name.localeCompare(b.name, "ms"));
     tracks.sort((a,b) => a.name.localeCompare(b.name, "ms"));
 
-    if (currentFolders.length === 0 && tracks.length === 0){
+    if (currentFolders.length === 0 && tracks.length === 0 && folderId !== ROOT_FOLDER_ID){
       showState("state-empty");
+      $("state-empty").querySelector("h2").textContent = "Folder ni kosong";
+      $("state-empty").querySelector("p").textContent = "Tiada sub-folder atau fail audio dalam folder ni.";
       return;
     }
     filteredFolders = currentFolders;
@@ -545,13 +602,28 @@ function stripExt(name){
 
 function renderList(){
   const wrap = $("list-wrap");
-  const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;
+  const isRoot = currentFolderId() === ROOT_FOLDER_ID;
+  const hasResults = (isRoot || filteredFolders.length > 0 || filteredTracks.length > 0);
+
   if (!hasResults){
     wrap.innerHTML = `<div class="empty-search">Tiada padan dengan carian tu.</div>`;
     return;
   }
 
   let html = "";
+
+  // Di root, paparkan tab Playlist Saya
+  if (isRoot){
+    html += `<div class="section-label">PLAYLIST</div>`;
+    html += `
+      <div class="folder-row playlist-folder" data-folder-id="${PLAYLIST_FOLDER_ID}" data-folder-name="⭐ Playlist Saya">
+        <div class="ficon">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+        </div>
+        <div class="name">⭐ Playlist Saya (${customPlaylist.length})</div>
+        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
+      </div>`;
+  }
 
   if (filteredFolders.length > 0){
     html += `<div class="section-label">FOLDER</div>`;
@@ -567,12 +639,18 @@ function renderList(){
     html += `<div class="section-label">LAGU</div>`;
     html += filteredTracks.map((t, i) => {
       const playing = t.id === currentPlayingId;
+      const isFav = isTrackInPlaylist(t.id);
       return `<div class="track ${playing?'playing':''}" data-index="${tracks.indexOf(t)}">
         <div class="idx">${playing && isPlaying ? '♪' : i+1}</div>
         <div class="meta">
           <div class="name">${escapeHtml(stripExt(t.name))}</div>
           <div class="sub">${(t.mimeType||'').replace('audio/','').toUpperCase()}</div>
         </div>
+        <button class="fav-btn ${isFav ? 'active' : ''}" data-id="${t.id}" title="${isFav ? 'Buang dari playlist' : 'Tambah ke playlist'}">
+          <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+        </button>
       </div>`;
     }).join("");
   }
@@ -584,6 +662,13 @@ function renderList(){
   });
   wrap.querySelectorAll(".track").forEach(el => {
     el.addEventListener("click", () => playTrack(parseInt(el.dataset.index)));
+  });
+  wrap.querySelectorAll(".fav-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const id = btn.dataset.id;
+      const trackObj = tracks.find(t => t.id === id) || customPlaylist.find(t => t.id === id);
+      if (trackObj) togglePlaylistTrack(trackObj, e);
+    });
   });
 }
 
@@ -712,7 +797,7 @@ function setupMediaSessionHandlers(){
   } catch(e){}
 }
 
-// ====== PRELOAD NEXT TRACK (Bypass iOS Lockscreen Freeze) ======
+// ====== PRELOAD NEXT TRACK ======
 async function preloadNextTrack(){
   if (currentIndex + 1 < tracks.length){
     const nextTrack = tracks[currentIndex + 1];
@@ -731,7 +816,7 @@ async function preloadNextTrack(){
   }
 }
 
-// ====== PLAYBACK (FETCH SECURE BLOB) ======
+// ====== PLAYBACK ======
 async function playTrack(index){
   if (index < 0 || index >= tracks.length) return;
   currentIndex = index;
@@ -786,8 +871,6 @@ async function playTrack(index){
     }
 
     applyTags(blob, fallbackName, myLoadToken);
-
-    // Preload lagu seterusnya sebaik sahaja lagu ini bermula
     preloadNextTrack();
 
   } catch(err){
@@ -825,7 +908,6 @@ $("play-big").addEventListener("click", togglePlay);
 $("next-btn").addEventListener("click", playNext);
 $("prev-btn").addEventListener("click", playPrev);
 
-// Autoplay bila lagu tamat
 audio.addEventListener("ended", () => {
   playNext();
 });
