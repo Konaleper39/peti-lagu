@@ -377,6 +377,10 @@ let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
 
+// Preload Cache for iOS background continuous playback
+let preloadedBlob = null;
+let preloadedTrackId = null;
+
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
 
@@ -708,6 +712,25 @@ function setupMediaSessionHandlers(){
   } catch(e){}
 }
 
+// ====== PRELOAD NEXT TRACK (Bypass iOS Lockscreen Freeze) ======
+async function preloadNextTrack(){
+  if (currentIndex + 1 < tracks.length){
+    const nextTrack = tracks[currentIndex + 1];
+    if (preloadedTrackId === nextTrack.id && preloadedBlob) return;
+    try {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${nextTrack.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      if (res.ok){
+        preloadedBlob = await res.blob();
+        preloadedTrackId = nextTrack.id;
+      }
+    } catch(e){
+      console.warn("Preload next track failed", e);
+    }
+  }
+}
+
 // ====== PLAYBACK (FETCH SECURE BLOB) ======
 async function playTrack(index){
   if (index < 0 || index >= tracks.length) return;
@@ -726,18 +749,25 @@ async function playTrack(index){
   renderList();
 
   try{
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${track.id}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
+    let blob = null;
+    if (preloadedTrackId === track.id && preloadedBlob){
+      blob = preloadedBlob;
+      preloadedBlob = null;
+      preloadedTrackId = null;
+    } else {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${track.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
 
-    if (res.status === 401){
-      authIntent = "track";
-      tokenClient.requestAccessToken({ prompt: "" });
-      return;
+      if (res.status === 401){
+        authIntent = "track";
+        tokenClient.requestAccessToken({ prompt: "" });
+        return;
+      }
+      if (!res.ok) throw new Error("Playback fetch failed " + res.status);
+      blob = await res.blob();
     }
-    if (!res.ok) throw new Error("Playback fetch failed " + res.status);
 
-    const blob = await res.blob();
     if (myLoadToken !== loadToken) return;
 
     if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
@@ -756,6 +786,9 @@ async function playTrack(index){
     }
 
     applyTags(blob, fallbackName, myLoadToken);
+
+    // Preload lagu seterusnya sebaik sahaja lagu ini bermula
+    preloadNextTrack();
 
   } catch(err){
     console.error(err);
@@ -791,7 +824,11 @@ $("mini-play").addEventListener("click", (e) => { e.stopPropagation(); togglePla
 $("play-big").addEventListener("click", togglePlay);
 $("next-btn").addEventListener("click", playNext);
 $("prev-btn").addEventListener("click", playPrev);
-audio.addEventListener("ended", playNext);
+
+// Autoplay bila lagu tamat
+audio.addEventListener("ended", () => {
+  playNext();
+});
 
 $("mini-player").addEventListener("click", () => { $("full-player").style.display = "flex"; });
 $("collapse-btn").addEventListener("click", () => { $("full-player").style.display = "none"; });
