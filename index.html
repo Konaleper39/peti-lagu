@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root{
     --bg: #170f1a;
@@ -151,11 +152,13 @@
     background: radial-gradient(circle at 35% 30%, #4a3752, #241a28 70%);
     display:flex; align-items:center; justify-content:center;
     border: 1px solid var(--line);
+    overflow: hidden;
   }
+  #mini-player .art img{ width:100%; height:100%; object-fit:cover; display:none; }
   #mini-player .art svg{ width:18px; height:18px; opacity:0.8; }
   #mini-player .info{ flex:1; min-width:0; }
   #mini-player .name{ font-size: 13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #mini-player .status{ font-size: 11px; color: var(--text-dim); margin-top:1px; }
+  #mini-player .status{ font-size: 11px; color: var(--text-dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .ctrl-btn{
     background:none; border:none; color: var(--text); padding: 8px; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
@@ -185,12 +188,16 @@
     border: 1px solid var(--line);
     display:flex; align-items:center; justify-content:center;
     box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
+    overflow: hidden;
   }
-  .art-big svg{ width: 30%; height:30%; opacity:0.85; }
+  .art-big img{ width:100%; height:100%; object-fit:cover; display:none; }
+  .art-big svg{ width: 30%; height:30%; opacity:0.85; flex-shrink:0; }
   .track-info{ margin-top: 30px; text-align:center; }
   .track-info .title{ font-size: 21px; font-weight: 500; line-height:1.3; }
-  .track-info .sub{ font-size: 13px; color: var(--text-dim); margin-top:4px; }
-  .seek-row{ margin-top: 26px; }
+  .track-info .artist{ font-size: 14.5px; color: var(--amber); margin-top: 6px; }
+  .track-info .album{ font-size: 12.5px; color: var(--text-dim); margin-top: 3px; }
+  .track-info .sub{ font-size: 12px; color: var(--text-dim); margin-top: 8px; }
+  .seek-row{ margin-top: 22px; }
   #seek{
     -webkit-appearance:none; width:100%; height: 4px; border-radius: 2px;
     background: var(--line); outline:none;
@@ -202,7 +209,7 @@
   .time-row{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--text-dim); margin-top:6px; font-variant-numeric: tabular-nums; }
   .controls-row{
     display:flex; align-items:center; justify-content:center; gap: 30px;
-    margin-top: 26px;
+    margin-top: 22px;
   }
   #play-big{
     width:64px; height:64px; border-radius:50%;
@@ -212,7 +219,7 @@
   #play-big svg{ width:26px; height:26px; }
   .skip-btn svg{ width: 28px; height:28px; color: var(--text); }
   .skip-btn{ background:none; border:none; cursor:pointer; }
-  .bottom-hint{ text-align:center; font-size:11.5px; color: var(--text-dim); margin-top: auto; padding-top: 20px; }
+  .bottom-hint{ text-align:center; font-size:11.5px; color: var(--text-dim); margin-top: auto; padding-top: 16px; }
 
   ::-webkit-scrollbar{ width: 0; height: 0; }
 </style>
@@ -265,7 +272,10 @@
 
   <div id="mini-player">
     <div id="mini-progress"></div>
-    <div class="art"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg></div>
+    <div class="art">
+      <img id="mini-art-img" alt="" />
+      <svg id="mini-art-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg>
+    </div>
     <div class="info">
       <div class="name" id="mini-name">—</div>
       <div class="status" id="mini-status">Tiada lagu dimainkan</div>
@@ -281,9 +291,14 @@
       <div class="eyebrow">Sedang main</div>
       <div style="width:22px;"></div>
     </div>
-    <div class="art-big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/></svg></div>
+    <div class="art-big">
+      <img id="full-art-img" alt="" />
+      <svg id="full-art-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/></svg>
+    </div>
     <div class="track-info">
       <div class="title" id="full-name">—</div>
+      <div class="artist" id="full-artist" style="display:none;">—</div>
+      <div class="album" id="full-album" style="display:none;">—</div>
       <div class="sub" id="full-status">—</div>
     </div>
     <div class="seek-row">
@@ -316,7 +331,9 @@ let tracks = [];
 let filteredTracks = [];
 let currentIndex = -1;
 let currentBlobUrl = null;
+let currentArtUrl = null;
 let isPlaying = false;
+let loadToken = 0; // guards against race conditions when skipping fast
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
@@ -440,16 +457,81 @@ $("search-input").addEventListener("input", (e) => {
   renderList();
 });
 
+// ====== ARTWORK / FALLBACK ======
+function setArtwork(url){
+  const miniImg = $("mini-art-img"), miniFallback = $("mini-art-fallback");
+  const fullImg = $("full-art-img"), fullFallback = $("full-art-fallback");
+  if (url){
+    miniImg.src = url; miniImg.style.display = "block"; miniFallback.style.display = "none";
+    fullImg.src = url; fullImg.style.display = "block"; fullFallback.style.display = "none";
+  } else {
+    miniImg.style.display = "none"; miniFallback.style.display = "block";
+    fullImg.style.display = "none"; fullFallback.style.display = "block";
+  }
+}
+
+function resetMetaFields(fallbackName){
+  $("mini-name").textContent = fallbackName;
+  $("full-name").textContent = fallbackName;
+  $("full-artist").style.display = "none";
+  $("full-album").style.display = "none";
+  setArtwork(null);
+}
+
+// Reads ID3/M4A tags from the blob: title, artist, album, embedded picture.
+function readTags(blob){
+  return new Promise((resolve) => {
+    if (typeof jsmediatags === "undefined"){ resolve(null); return; }
+    jsmediatags.read(blob, {
+      onSuccess: (tag) => resolve(tag.tags || null),
+      onError: () => resolve(null)
+    });
+  });
+}
+
+async function applyTags(blob, fallbackName, myLoadToken){
+  const tags = await readTags(blob);
+  if (myLoadToken !== loadToken) return; // a newer track started loading meanwhile, discard
+
+  const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackName;
+  const artist = tags && tags.artist && tags.artist.trim();
+  const album = tags && tags.album && tags.album.trim();
+
+  $("mini-name").textContent = artist ? `${title} — ${artist}` : title;
+  $("full-name").textContent = title;
+
+  if (artist){ $("full-artist").textContent = artist; $("full-artist").style.display = "block"; }
+  else { $("full-artist").style.display = "none"; }
+
+  if (album){ $("full-album").textContent = album; $("full-album").style.display = "block"; }
+  else { $("full-album").style.display = "none"; }
+
+  if (tags && tags.picture){
+    try{
+      const { data, format } = tags.picture;
+      const artBlob = new Blob([new Uint8Array(data)], { type: format || "image/jpeg" });
+      if (currentArtUrl) URL.revokeObjectURL(currentArtUrl);
+      currentArtUrl = URL.createObjectURL(artBlob);
+      setArtwork(currentArtUrl);
+    } catch(e){
+      setArtwork(null);
+    }
+  } else {
+    setArtwork(null);
+  }
+}
+
 // ====== PLAYBACK ======
 async function playTrack(index){
   if (index < 0 || index >= tracks.length) return;
   currentIndex = index;
   const track = tracks[index];
+  const fallbackName = stripExt(track.name);
+  const myLoadToken = ++loadToken;
 
   $("mini-player").style.display = "flex";
-  $("mini-name").textContent = stripExt(track.name);
+  resetMetaFields(fallbackName);
   $("mini-status").textContent = "Memuatkan…";
-  $("full-name").textContent = stripExt(track.name);
   $("full-status").textContent = "Memuatkan…";
   renderList();
 
@@ -464,18 +546,23 @@ async function playTrack(index){
     }
     if (!res.ok) throw new Error("Gagal muat turun fail");
     const blob = await res.blob();
+    if (myLoadToken !== loadToken) return; // superseded by another track
 
     if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
     currentBlobUrl = URL.createObjectURL(blob);
     audio.src = currentBlobUrl;
     await audio.play();
+    if (myLoadToken !== loadToken) return;
+
     isPlaying = true;
     updatePlayIcons();
-    $("mini-status").textContent = "Sedang main";
-    $("full-status").textContent = "Streaming dari Drive";
     renderList();
+
+    // Extract ID3/M4A tags + cover art in the background — doesn't block playback.
+    applyTags(blob, fallbackName, myLoadToken);
   } catch(err){
     console.error(err);
+    if (myLoadToken !== loadToken) return;
     $("mini-status").textContent = "Ralat memuatkan lagu";
     $("full-status").textContent = "Ralat memuatkan lagu";
   }
