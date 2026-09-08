@@ -6,291 +6,298 @@
 <title>Peti Lagu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
-  :root{
-    --bg: #170f1a;
-    --bg-raised: #201622;
-    --line: #382b3e;
-    --amber: #e0a458;
-    --amber-dim: #a5763c;
-    --text: #f3ece2;
-    --text-dim: #a89aa8;
-    --danger: #d97b6c;
+  :root {
+    --bg-base: #111113;
+    --text-main: #ffffff;
+    --text-sub: rgba(255, 255, 255, 0.65);
+    --line: rgba(255, 255, 255, 0.12);
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass-pill: rgba(255, 255, 255, 0.16);
+    --glass-pill-active: rgba(255, 255, 255, 0.95);
+    --danger: #ff453a;
   }
-  *{ box-sizing: border-box; }
-  html,body{
-    margin:0; padding:0; height:100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Inter', system-ui, sans-serif;
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg-base);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif;
     -webkit-font-smoothing: antialiased;
     overscroll-behavior-y: none;
-  }
-  h1,h2,h3,.serif{ font-family: 'Fraunces', serif; }
-
-  .app{
-    display:flex; flex-direction:column;
-    height: 100dvh;
-    max-width: 560px;
-    margin: 0 auto;
-    position: relative;
-    border-left: 1px solid var(--line);
-    border-right: 1px solid var(--line);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
-  header{
-    padding: 22px 20px 16px;
+  .app {
+    display: flex; flex-direction: column;
+    height: 100dvh; max-width: 480px; margin: 0 auto;
+    position: relative; overflow: hidden;
+  }
+
+  header {
+    padding: 22px 20px 14px;
+    display: flex; justify-content: space-between; align-items: baseline;
     border-bottom: 1px solid var(--line);
     flex-shrink: 0;
   }
-  .brand{
-    display:flex; align-items:baseline; justify-content:space-between; gap: 12px;
-  }
-  .brand h1{
-    font-size: 26px; font-weight: 600; margin:0; letter-spacing: 0.2px;
-  }
-  .brand h1 span{ color: var(--amber); }
-  .tagline{
-    margin: 4px 0 0; font-size: 13px; color: var(--text-dim);
-  }
-  #signin-btn{
-    background: var(--amber);
-    color: #221407;
-    border: none;
-    padding: 9px 16px;
-    border-radius: 999px;
-    font-weight: 600;
-    font-size: 13.5px;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  #signin-btn:active{ transform: scale(0.97); }
-  .user-chip{
-    display:none; align-items:center; gap:8px;
-    font-size: 13px; color: var(--text-dim);
-  }
-
-  #breadcrumb-wrap{
-    display:none;
-    align-items:center; gap: 6px;
-    padding: 12px 16px 0;
-    flex-shrink:0;
-  }
-  #back-btn{
-    background:none; border:none; color: var(--text-dim); padding: 6px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; flex-shrink:0;
-  }
-  #back-btn svg{ width:19px; height:19px; }
-  #back-btn.hidden{ visibility:hidden; }
-  .crumbs{
-    display:flex; align-items:center; gap: 4px;
-    overflow-x: auto; white-space: nowrap;
-    font-size: 13px;
-    -ms-overflow-style: none; scrollbar-width: none;
-  }
-  .crumbs::-webkit-scrollbar{ display:none; }
-  .crumb{ color: var(--text-dim); cursor: pointer; flex-shrink:0; }
-  .crumb:last-child{ color: var(--text); font-weight: 600; cursor: default; }
-  .crumb-sep{ color: var(--text-dim); opacity: 0.5; flex-shrink:0; }
-
-  .search-wrap{
-    padding: 12px 20px 4px;
-    flex-shrink: 0;
-    display: none;
-  }
-  .search-wrap input{
-    width: 100%;
-    background: var(--bg-raised);
-    border: 1px solid var(--line);
-    color: var(--text);
-    padding: 11px 14px;
-    border-radius: 10px;
-    font-size: 14.5px;
-    font-family: inherit;
-  }
-  .search-wrap input::placeholder{ color: #6f6274; }
-  .search-wrap input:focus{ outline: 1px solid var(--amber-dim); }
-
-  .state-panel{
-    flex: 1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding: 40px 30px; gap: 14px; color: var(--text-dim);
-  }
-  .state-panel .glyph{ font-size: 40px; opacity: 0.65; }
-  .state-panel h2{ font-size: 19px; color: var(--text); margin: 0; font-weight: 500; }
-  .state-panel p{ font-size: 13.5px; line-height: 1.5; margin:0; max-width: 320px; }
-  .retry-btn{
-    margin-top: 6px;
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: 999px;
-    font-size: 13px;
+  .brand h1 { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+  .brand p { margin: 3px 0 0; font-size: 13px; color: var(--text-sub); }
+  #signin-btn {
+    background: #fff; color: #000; border: none;
+    padding: 8px 16px; border-radius: 999px; font-weight: 600; font-size: 13px;
     cursor: pointer;
   }
+  .user-chip { display: none; font-size: 13px; color: var(--text-sub); }
 
-  #list-wrap{ flex:1; overflow-y: auto; padding: 8px 8px 130px; display:none; -webkit-overflow-scrolling: touch; }
-  .section-label{
-    font-size: 11.5px; color: var(--text-dim); padding: 10px 12px 4px;
+  #breadcrumb-wrap {
+    display: none; align-items: center; gap: 6px;
+    padding: 12px 18px 4px; flex-shrink: 0;
   }
-  .folder-row, .track{
-    display:flex; align-items:center; gap: 12px;
-    padding: 11px 12px;
-    border-radius: 10px;
-    cursor: pointer;
+  #back-btn {
+    background: none; border: none; color: var(--text-sub);
+    padding: 4px; cursor: pointer; display: flex; align-items: center;
   }
-  .folder-row:active, .track:active{ background: var(--bg-raised); }
-  .folder-row .ficon{
-    width: 26px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color: var(--amber-dim);
+  #back-btn.hidden { visibility: hidden; }
+  .crumbs {
+    display: flex; gap: 5px; overflow-x: auto; white-space: nowrap; font-size: 13px;
+    scrollbar-width: none;
   }
-  .folder-row .ficon svg{ width:19px; height:19px; }
-  .folder-row .name{ font-size: 14.5px; flex:1; }
-  .folder-row .chev{ color: var(--text-dim); flex-shrink:0; }
-  .folder-row .chev svg{ width:16px; height:16px; }
+  .crumbs::-webkit-scrollbar { display: none; }
+  .crumb { color: var(--text-sub); cursor: pointer; }
+  .crumb:last-child { color: var(--text-main); font-weight: 600; cursor: default; }
 
-  .track.playing{ background: rgba(224,164,88,0.1); }
-  .track .idx{
-    width: 26px; flex-shrink:0; text-align:center;
-    font-size: 12.5px; color: var(--text-dim); font-variant-numeric: tabular-nums;
+  .search-wrap { padding: 8px 18px; flex-shrink: 0; display: none; }
+  .search-wrap input {
+    width: 100%; background: var(--glass); border: none;
+    color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px;
   }
-  .track.playing .idx{ color: var(--amber); }
-  .track .meta{ flex:1; min-width:0; }
-  .track .name{
-    font-size: 14.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .track.playing .name{ color: var(--amber); }
-  .track .sub{ font-size: 11.5px; color: var(--text-dim); margin-top: 2px; }
+  .search-wrap input:focus { outline: none; background: rgba(255,255,255,0.12); }
 
-  .queue-btn{
-    background: transparent;
-    border: 1px solid var(--line);
-    color: var(--amber-dim);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    cursor: pointer;
-    flex-shrink: 0;
+  .state-panel {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px; color: var(--text-sub); gap: 12px;
   }
-  .queue-btn:active{ background: var(--amber); color: #221407; }
+  .state-panel h2 { color: #fff; font-size: 18px; margin: 0; font-weight: 600; }
+  .state-panel p { font-size: 13px; margin: 0; line-height: 1.4; max-width: 280px; }
 
-  .empty-search{ text-align:center; color: var(--text-dim); font-size: 13.5px; padding: 40px 20px; }
-
-  #mini-player{
-    position:absolute; left:0; right:0; bottom:0;
-    display:none; align-items:center; gap: 12px;
-    padding: 10px 14px;
-    padding-bottom: max(10px, env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(23,15,26,0.6), rgba(23,15,26,0.97) 30%);
-    backdrop-filter: blur(10px);
-    border-top: 1px solid var(--line);
-    cursor: pointer;
+  #list-wrap { flex: 1; overflow-y: auto; padding: 8px 12px 140px; display: none; -webkit-overflow-scrolling: touch; }
+  .section-label { font-size: 11px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.8px; padding: 12px 10px 4px; }
+  .folder-row, .track {
+    display: flex; align-items: center; gap: 12px; padding: 12px;
+    border-radius: 10px; cursor: pointer;
   }
-  #mini-player .art{
-    width: 42px; height:42px; border-radius:8px; flex-shrink:0;
-    background: radial-gradient(circle at 35% 30%, #4a3752, #241a28 70%);
-    display:flex; align-items:center; justify-content:center;
-    border: 1px solid var(--line);
+  .folder-row:active, .track:active { background: var(--glass); }
+  .ficon { width: 24px; color: var(--text-sub); display: flex; align-items: center; }
+  .folder-row .name, .track .name { font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track.playing .name { color: #ff375f; font-weight: 600; }
+  .track .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
+  /* Mini Player */
+  #mini-player {
+    position: absolute; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom));
+    background: rgba(30, 30, 34, 0.78);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 8px 12px;
+    display: none; align-items: center; gap: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5); cursor: pointer; z-index: 10;
+  }
+  #mini-player .art {
+    width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+    background: #2a2a2e; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  }
+  #mini-player .art img { width: 100%; height: 100%; object-fit: cover; display: none; }
+  #mini-player .info { flex: 1; min-width: 0; }
+  #mini-player .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #mini-player .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ctrl-btn { background: none; border: none; color: #fff; padding: 6px; cursor: pointer; }
+
+  /* Full Screen Player */
+  #full-player {
+    position: fixed; inset: 0; z-index: 100;
+    display: none; flex-direction: column;
+    padding: 16px 24px max(24px, env(safe-area-inset-bottom));
+    overflow: hidden; background: #1c1c1e;
+    touch-action: pan-y;
+  }
+  #ambient-backdrop {
+    position: absolute; inset: -40px;
+    background-size: cover; background-position: center;
+    filter: blur(65px) brightness(0.65) saturate(150%);
+    -webkit-filter: blur(65px) brightness(0.65) saturate(150%);
+    transform: scale(1.15); z-index: -1; transition: background-image 0.6s ease;
+  }
+  #ambient-dimmer {
+    position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: -1;
+  }
+
+  .grabber-bar {
+    width: 38px; height: 5px; background: rgba(255,255,255,0.3);
+    border-radius: 3px; margin: 4px auto 16px; cursor: pointer;
+  }
+
+  /* Stage Slider */
+  .stage-viewport {
+    flex: 1; display: flex; overflow: hidden; position: relative; width: 100%;
+  }
+  .stage-slider {
+    display: flex; width: 200%; height: 100%;
+    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .stage-panel-inner {
+    width: 50%; height: 100%; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+
+  /* Screen 1: Artwork */
+  .art-large-wrap {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    min-height: 0; padding: 10px 0 20px;
+  }
+  .art-large {
+    width: min(78vw, 320px); height: min(78vw, 320px);
+    border-radius: 14px; overflow: hidden; background: #26262a;
+    box-shadow: 0 20px 45px rgba(0,0,0,0.55);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.35s ease;
+  }
+  .art-large.paused { transform: scale(0.86); }
+  .art-large img { width: 100%; height: 100%; object-fit: cover; display: none; }
+
+  .track-headline {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: auto; padding-bottom: 8px;
+  }
+  .track-headline .titles { flex: 1; min-width: 0; }
+  .track-headline .titles .t-name {
+    font-size: 20px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .track-headline .titles .t-artist {
+    font-size: 16px; color: var(--text-sub); margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Screen 2: Queue */
+  .queue-header-track {
+    display: flex; align-items: center; gap: 14px; padding-bottom: 12px;
+  }
+  .queue-header-art {
+    width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
+    background: #26262a; flex-shrink: 0;
+  }
+  .queue-header-art img { width: 100%; height: 100%; object-fit: cover; }
+  .queue-header-info { flex: 1; min-width: 0; }
+  .queue-header-info .q-name { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .queue-header-info .q-artist { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
+
+  .pill-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .pill-btn {
+    flex: 1; height: 38px; border-radius: 10px; background: var(--glass-pill);
+    border: none; color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+  }
+  .pill-btn.active { background: var(--glass-pill-active); color: #000; }
+  .pill-badge {
+    position: absolute; font-size: 10px; font-weight: 800; top: 8px; right: calc(50% - 16px);
+  }
+
+  .queue-list-container { flex: 1; overflow-y: auto; padding-right: 4px; }
+  .queue-label { font-size: 14px; font-weight: 700; margin: 8px 0 4px; }
+  .queue-row {
+    display: flex; align-items: center; gap: 12px; padding: 8px 4px;
+    border-radius: 8px;
+  }
+  .queue-row .q-art {
+    width: 40px; height: 40px; border-radius: 6px; background: #26262a;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
     overflow: hidden;
   }
-  #mini-player .art img{ width:100%; height:100%; object-fit:cover; display:none; }
-  #mini-player .art svg{ width:18px; height:18px; opacity:0.8; }
-  #mini-player .info{ flex:1; min-width:0; }
-  #mini-player .name{ font-size: 13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  #mini-player .status{ font-size: 11px; color: var(--text-dim); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .ctrl-btn{
-    background:none; border:none; color: var(--text); padding: 8px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .ctrl-btn svg{ width:22px; height:22px; }
-  #mini-progress{
-    position:absolute; top:0; left:0; height:2px; background: var(--amber); width:0%;
+  .queue-row .q-art img { width: 100%; height: 100%; object-fit: cover; }
+  .queue-row .q-details { flex: 1; min-width: 0; }
+  .queue-row .q-title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .queue-row .q-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .queue-row .del-btn {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--danger);
+    border: none; color: #fff; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
   }
 
-  #full-player{
-    position:absolute; inset:0; background: var(--bg);
-    display:none; flex-direction:column;
-    padding: 18px 26px 26px;
-    padding-bottom: max(26px, env(safe-area-inset-bottom));
-    z-index: 20;
+  /* Scrubber & Controls */
+  .scrubber-wrap { margin-top: 14px; }
+  #seek {
+    -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px;
+    background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
   }
-  #full-player .top-row{ display:flex; justify-content:space-between; align-items:center; }
-  #collapse-btn{ background:none; border:none; color: var(--text-dim); padding:8px; cursor:pointer; }
-  #collapse-btn svg{ width:22px; height:22px; }
-  .eyebrow{ font-size: 12px; color: var(--text-dim); }
-  .art-big{
-    margin: 20px auto 0;
-    width: min(68vw, 280px); height: min(68vw, 280px);
-    border-radius: 16px;
-    background: radial-gradient(circle at 32% 28%, #5a4361, #241a28 72%);
-    border: 1px solid var(--line);
-    display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.6);
-    overflow: hidden;
+  #seek::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 8px; height: 8px; border-radius: 50%;
+    background: #fff; transition: transform 0.15s ease;
   }
-  .art-big img{ width:100%; height:100%; object-fit:cover; display:none; }
-  .art-big svg{ width: 30%; height:30%; opacity:0.85; flex-shrink:0; }
-  .track-info{ margin-top: 24px; text-align:center; }
-  .track-info .title{ font-size: 20px; font-weight: 500; line-height:1.3; }
-  .track-info .artist{ font-size: 14px; color: var(--amber); margin-top: 5px; }
-  .track-info .album{ font-size: 12px; color: var(--text-dim); margin-top: 3px; }
-  .track-info .sub{ font-size: 11.5px; color: var(--text-dim); margin-top: 6px; }
-  
-  .seek-row{ margin-top: 18px; }
-  #seek{
-    -webkit-appearance:none; width:100%; height: 4px; border-radius: 2px;
-    background: var(--line); outline:none;
-  }
-  #seek::-webkit-slider-thumb{
-    -webkit-appearance:none; width:14px; height:14px; border-radius:50%;
-    background: var(--amber); cursor:pointer; margin-top:-5px;
-  }
-  .time-row{ display:flex; justify-content:space-between; font-size:11.5px; color: var(--text-dim); margin-top:6px; font-variant-numeric: tabular-nums; }
-  
-  .controls-row{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-top: 18px; padding: 0 10px;
-  }
-  .mode-btn{
-    background:none; border:none; color: var(--text-dim); padding: 8px; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; position: relative;
-  }
-  .mode-btn.active{ color: var(--amber); }
-  .mode-btn svg{ width: 22px; height: 22px; }
-  .mode-badge{
-    position: absolute; top: 4px; right: 2px; font-size: 9px; font-weight: bold;
-    background: var(--amber); color: #221407; border-radius: 50%; width: 13px; height: 13px;
-    display: none; align-items:center; justify-content:center;
-  }
-  
-  #play-big{
-    width:62px; height:62px; border-radius:50%;
-    background: var(--amber); color:#221407;
-    border:none; display:flex; align-items:center; justify-content:center; cursor:pointer;
-  }
-  #play-big svg{ width:26px; height:26px; }
-  .skip-btn svg{ width: 26px; height:26px; color: var(--text); }
-  .skip-btn{ background:none; border:none; cursor:pointer; }
-  .bottom-hint{ text-align:center; font-size:11.5px; color: var(--text-dim); margin-top: auto; padding-top: 14px; }
-
-  #toast{
-    position: fixed;
-    bottom: 80px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--bg-raised);
-    border: 1px solid var(--amber-dim);
-    color: var(--text);
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12.5px;
-    display: none;
-    z-index: 100;
+  #seek:active::-webkit-slider-thumb { transform: scale(2.2); }
+  .time-stamps {
+    display: flex; justify-content: space-between; font-size: 11px;
+    color: var(--text-sub); font-variant-numeric: tabular-nums; margin-top: 6px;
   }
 
-  ::-webkit-scrollbar{ width: 0; height: 0; }
+  .playback-row {
+    display: flex; align-items: center; justify-content: center; gap: 46px;
+    margin: 18px 0 16px;
+  }
+  .btn-transport { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; }
+  .btn-transport svg { width: 34px; height: 34px; }
+  .btn-transport.play-main svg { width: 50px; height: 50px; }
+
+  .footer-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 10px; margin-top: auto;
+  }
+  .footer-btn {
+    background: none; border: none; color: var(--text-sub); padding: 8px;
+    cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  }
+  .footer-btn.active { color: #fff; background: var(--glass-pill); }
+
+  /* Apple Style Context Action Sheet */
+  #action-sheet-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    z-index: 300; display: none; align-items: flex-end; justify-content: center;
+    padding: 16px;
+  }
+  #action-sheet {
+    background: rgba(36, 36, 38, 0.95);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 16px; width: 100%; max-width: 400px;
+    padding: 8px 0; overflow: hidden;
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .sheet-header {
+    padding: 12px 18px 14px; border-bottom: 1px solid var(--line);
+  }
+  .sheet-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sheet-sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  .sheet-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; font-size: 15px; font-weight: 500; cursor: pointer;
+  }
+  .sheet-item:active { background: var(--glass); }
+  .sheet-item svg { width: 19px; height: 19px; color: var(--text-sub); }
+
+  #toast {
+    position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(30,30,32,0.92); border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 500;
+    display: none; z-index: 400; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
 </style>
 </head>
 <body>
@@ -299,17 +306,17 @@
 
   <header>
     <div class="brand">
-      <div>
-        <h1>Peti<span> Lagu</span></h1>
-        <p class="tagline">Your music collection, straight from Google Drive</p>
-      </div>
-      <button id="signin-btn">Sign in</button>
-      <div class="user-chip" id="user-chip"></div>
+      <h1>Peti Lagu</h1>
+      <p>Your library, directly from Google Drive</p>
     </div>
+    <button id="signin-btn">Sign In</button>
+    <div class="user-chip" id="user-chip"></div>
   </header>
 
   <div id="breadcrumb-wrap">
-    <button id="back-btn" class="hidden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
+    <button id="back-btn" class="hidden">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
     <div class="crumbs" id="crumbs"></div>
   </div>
 
@@ -318,82 +325,143 @@
   </div>
 
   <div class="state-panel" id="state-signed-out">
-    <div class="glyph">🎙️</div>
-    <h2>Not signed in</h2>
-    <p>Sign in with the Google account that contains your MDP folder.</p>
+    <h2>Not Signed In</h2>
+    <p>Sign in with your Google account that has your audio folder.</p>
   </div>
 
   <div class="state-panel" id="state-loading" style="display:none;">
-    <div class="glyph">…</div>
-    <h2>Scanning folder</h2>
-    <p>One moment, fetching songs and subfolders.</p>
+    <h2>Loading Library…</h2>
+    <p>Reading folders and track metadata.</p>
   </div>
 
   <div class="state-panel" id="state-error" style="display:none;">
-    <div class="glyph">⚠️</div>
-    <h2>Something went wrong</h2>
+    <h2>Connection Issue</h2>
     <p id="error-msg">Unable to connect to Google Drive.</p>
-    <button class="retry-btn" id="retry-btn">Try again</button>
   </div>
 
   <div class="state-panel" id="state-empty" style="display:none;">
-    <div class="glyph">📂</div>
-    <h2>This folder is empty</h2>
-    <p>No subfolders or audio files found.</p>
+    <h2>Folder Empty</h2>
+    <p>No playable audio files found in this directory.</p>
   </div>
 
   <div id="list-wrap"></div>
 
+  <!-- iOS Frosted Mini Player -->
   <div id="mini-player">
-    <div id="mini-progress"></div>
     <div class="art">
       <img id="mini-art-img" alt="" />
-      <svg id="mini-art-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none"/></svg>
+      <svg id="mini-fallback" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
     </div>
     <div class="info">
       <div class="name" id="mini-name">—</div>
-      <div class="status" id="mini-status">No track playing</div>
+      <div class="sub" id="mini-sub">—</div>
     </div>
     <button class="ctrl-btn" id="mini-play">
-      <svg id="mini-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      <svg id="mini-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
     </button>
   </div>
 
+  <!-- Apple Music Modal Full Player with Swipe -->
   <div id="full-player">
-    <div class="top-row">
-      <button id="collapse-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button>
-      <div class="eyebrow">Now Playing</div>
-      <div style="width:22px;"></div>
+    <div id="ambient-backdrop"></div>
+    <div id="ambient-dimmer"></div>
+    <div class="grabber-bar" id="collapse-btn"></div>
+
+    <div class="stage-viewport" id="stage-viewport">
+      <div class="stage-slider" id="stage-slider">
+        
+        <!-- Screen 1: Artwork -->
+        <div class="stage-panel-inner">
+          <div class="art-large-wrap">
+            <div class="art-large paused" id="art-large-box">
+              <img id="large-art-img" alt="" />
+              <svg id="large-fallback" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+            </div>
+          </div>
+          <div class="track-headline">
+            <div class="titles">
+              <div class="t-name" id="full-name">—</div>
+              <div class="t-artist" id="full-artist">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen 2: Queue / Playing Next -->
+        <div class="stage-panel-inner" style="padding-left: 6px;">
+          <div class="queue-header-track">
+            <div class="queue-header-art">
+              <img id="queue-mini-art" src="" alt="" />
+            </div>
+            <div class="queue-header-info">
+              <div class="q-name" id="queue-cur-name">—</div>
+              <div class="q-artist" id="queue-cur-artist">—</div>
+            </div>
+          </div>
+
+          <div class="pill-bar">
+            <button class="pill-btn" id="shuffle-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+            </button>
+            <button class="pill-btn" id="loop-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+              <span class="pill-badge" id="loop-badge" style="display:none;">1</span>
+            </button>
+          </div>
+
+          <div class="queue-label">Playing Next</div>
+          <div class="queue-list-container" id="queue-items-wrap"></div>
+        </div>
+
+      </div>
     </div>
-    <div class="art-big">
-      <img id="full-art-img" alt="" />
-      <svg id="full-art-fallback" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/></svg>
-    </div>
-    <div class="track-info">
-      <div class="title" id="full-name">—</div>
-      <div class="artist" id="full-artist" style="display:none;">—</div>
-      <div class="album" id="full-album" style="display:none;">—</div>
-      <div class="sub" id="full-status">—</div>
-    </div>
-    <div class="seek-row">
+
+    <!-- Scrubber -->
+    <div class="scrubber-wrap">
       <input type="range" id="seek" min="0" max="100" value="0" />
-      <div class="time-row"><span id="time-cur">0:00</span><span id="time-dur">0:00</span></div>
+      <div class="time-stamps">
+        <span id="time-cur">0:00</span>
+        <span id="time-dur">-0:00</span>
+      </div>
     </div>
-    <div class="controls-row">
-      <button class="mode-btn" id="shuffle-btn" title="Shuffle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+
+    <!-- Big Controls -->
+    <div class="playback-row">
+      <button class="btn-transport" id="prev-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
       </button>
-      <button class="skip-btn" id="prev-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-      <button id="play-big">
+      <button class="btn-transport play-main" id="play-big">
         <svg id="big-play-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       </button>
-      <button class="skip-btn" id="next-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg></button>
-      <button class="mode-btn" id="loop-btn" title="Loop Mode">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
-        <span class="mode-badge" id="loop-badge">1</span>
+      <button class="btn-transport" id="next-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
       </button>
     </div>
-    <div class="bottom-hint" id="queue-hint">Streaming directly from your Google Drive</div>
+
+    <!-- Footer Switcher -->
+    <div class="footer-row">
+      <div style="width:36px;"></div>
+      <button class="footer-btn" id="toggle-queue-btn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- iOS Long Press Context Menu -->
+  <div id="action-sheet-backdrop">
+    <div id="action-sheet">
+      <div class="sheet-header">
+        <div class="sheet-title" id="sheet-song-title">Song Title</div>
+        <div class="sheet-sub" id="sheet-song-sub">Artist</div>
+      </div>
+      <div class="sheet-item" id="sheet-play-next">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4l10 8-10 8V4zM19 5v14"/></svg>
+        <span>Play Next</span>
+      </div>
+      <div class="sheet-item" id="sheet-add-queue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        <span>Add to End of Queue</span>
+      </div>
+    </div>
   </div>
 
   <div id="toast"></div>
@@ -403,7 +471,7 @@
 <audio id="audio-el" preload="auto"></audio>
 
 <script>
-// ====== SETUP ======
+// ====== CONSTANTS & STATE ======
 const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
@@ -421,14 +489,13 @@ let tracks = [];
 let filteredFolders = [];
 let filteredTracks = [];
 
-// Dynamic Play Queue & Modes
 let playQueue = [];
 let queueIndex = -1;
 let isShuffle = false;
-let loopMode = 0; // 0: Off, 1: Loop All, 2: Loop One
+let loopMode = 0;
 
 let currentPlayingId = null;
-let currentArtUrl = null;
+let currentArtBlobUrl = null;
 let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
@@ -436,43 +503,40 @@ let loadToken = 0;
 let preloadedBlob = null;
 let preloadedTrackId = null;
 
+let selectedSheetTrack = null;
+let currentSlideIndex = 0; // 0: Artwork, 1: Queue
+
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
 
-function showToast(msg){
+function showToast(msg) {
   const t = $("toast");
-  t.textContent = msg;
-  t.style.display = "block";
+  t.textContent = msg; t.style.display = "block";
   clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.display = "none"; }, 2000);
+  t._timer = setTimeout(() => { t.style.display = "none"; }, 1800);
 }
 
-function showState(name){
-  ["state-signed-out","state-loading","state-error","state-empty"].forEach(id=>{
-    $(id).style.display = (id===name) ? "flex" : "none";
+function showState(name) {
+  ["state-signed-out", "state-loading", "state-error", "state-empty"].forEach(id => {
+    $(id).style.display = (id === name) ? "flex" : "none";
   });
-  $("list-wrap").style.display = (name===null) ? "block" : "none";
-  $("search-wrap").style.display = (name===null) ? "block" : "none";
-  $("breadcrumb-wrap").style.display = (name==="state-signed-out") ? "none" : "flex";
+  $("list-wrap").style.display = (name === null) ? "block" : "none";
+  $("search-wrap").style.display = (name === null) ? "block" : "none";
+  $("breadcrumb-wrap").style.display = (name === "state-signed-out") ? "none" : "flex";
 }
 
-// ====== AUTH ======
+// ====== AUTHENTICATION ======
 window.onload = () => {
   setupMediaSessionHandlers();
+  setupSwipeGesture();
 
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
-      if (resp.error){
-        console.error(resp.error);
-        if (authIntent === "track"){
-          $("mini-status").textContent = "Session expired";
-          $("full-status").textContent = "Session expired";
-        } else {
-          showState("state-error");
-          $("error-msg").textContent = "Sign-in failed. Please try again.";
-        }
+      if (resp.error) {
+        showState("state-error");
+        $("error-msg").textContent = "Sign in failed. Please try again.";
         return;
       }
       accessToken = resp.access_token;
@@ -480,9 +544,9 @@ window.onload = () => {
       localStorage.setItem("petilagu_token", accessToken);
       localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
 
-      if (authIntent === "track" && queueIndex !== -1){
+      if (authIntent === "track" && queueIndex !== -1) {
         playQueueTrack(queueIndex);
-      } else if (authIntent === "folder"){
+      } else if (authIntent === "folder") {
         loadFolder(currentFolderId());
       } else {
         onSignedIn();
@@ -503,36 +567,27 @@ $("signin-btn").addEventListener("click", () => {
   tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
 });
 
-$("retry-btn").addEventListener("click", () => {
-  if (accessToken && Date.now() < tokenExpiresAt){ 
-    loadFolder(currentFolderId()); 
-  } else { 
-    authIntent = "initial"; 
-    tokenClient.requestAccessToken({ prompt: "" }); 
-  }
-});
-
-function onSignedIn(){
+function onSignedIn() {
   $("signin-btn").style.display = "none";
   $("user-chip").style.display = "flex";
-  $("user-chip").innerHTML = `<span>Signed in ✓</span>`;
+  $("user-chip").innerHTML = `<span>Connected</span>`;
   breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
   loadFolder(ROOT_FOLDER_ID);
 }
 
-function currentFolderId(){ return breadcrumbPath[breadcrumbPath.length - 1].id; }
+function currentFolderId() { return breadcrumbPath[breadcrumbPath.length - 1].id; }
 
 // ====== BREADCRUMB ======
-function renderBreadcrumb(){
+function renderBreadcrumb() {
   $("back-btn").className = breadcrumbPath.length > 1 ? "" : "hidden";
-  $("crumbs").innerHTML = breadcrumbPath.map((crumb, i) => {
-    const sep = i > 0 ? `<span class="crumb-sep">›</span>` : "";
-    return `${sep}<span class="crumb" data-i="${i}">${escapeHtml(crumb.name)}</span>`;
-  }).join("");
+  $("crumbs").innerHTML = breadcrumbPath.map((c, i) => {
+    const sep = i > 0 ? `<span style="opacity:0.3;">/</span>` : "";
+    return `${sep}<span class="crumb" data-i="${i}">${escapeHtml(c.name)}</span>`;
+  }).join(" ");
   $("crumbs").querySelectorAll(".crumb").forEach(el => {
     el.addEventListener("click", () => {
       const i = parseInt(el.dataset.i);
-      if (i < breadcrumbPath.length - 1){
+      if (i < breadcrumbPath.length - 1) {
         breadcrumbPath = breadcrumbPath.slice(0, i + 1);
         loadFolder(currentFolderId());
       }
@@ -541,27 +596,27 @@ function renderBreadcrumb(){
 }
 
 $("back-btn").addEventListener("click", () => {
-  if (breadcrumbPath.length > 1){
+  if (breadcrumbPath.length > 1) {
     breadcrumbPath = breadcrumbPath.slice(0, -1);
     loadFolder(currentFolderId());
   }
 });
 
-function enterFolder(id, name){
+function enterFolder(id, name) {
   breadcrumbPath = [...breadcrumbPath, { id, name }];
   loadFolder(id);
 }
 
-// ====== DRIVE LISTING ======
-async function loadFolder(folderId){
+// ====== DRIVE RETRIEVAL ======
+async function loadFolder(folderId) {
   showState("state-loading");
   renderBreadcrumb();
   currentFolders = [];
   tracks = [];
-  try{
+  try {
     let pageToken = null;
     const q = `'${folderId}' in parents and trashed = false and (mimeType = '${FOLDER_MIME}' or mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.audio')`;
-    do{
+    do {
       const url = new URL("https://www.googleapis.com/drive/v3/files");
       url.searchParams.set("q", q);
       url.searchParams.set("fields", "nextPageToken, files(id, name, mimeType, size)");
@@ -570,24 +625,24 @@ async function loadFolder(folderId){
       if (pageToken) url.searchParams.set("pageToken", pageToken);
 
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (res.status === 401){
+      if (res.status === 401) {
         authIntent = "folder";
         tokenClient.requestAccessToken({ prompt: "" });
         return;
       }
       if (!res.ok) throw new Error("Drive API error " + res.status);
       const data = await res.json();
-      for (const f of (data.files || [])){
+      for (const f of (data.files || [])) {
         if (f.mimeType === FOLDER_MIME) currentFolders.push(f);
         else tracks.push(f);
       }
       pageToken = data.nextPageToken;
-    } while(pageToken);
+    } while (pageToken);
 
     currentFolders.sort((a,b) => a.name.localeCompare(b.name, "en"));
     tracks.sort((a,b) => a.name.localeCompare(b.name, "en"));
 
-    if (currentFolders.length === 0 && tracks.length === 0){
+    if (currentFolders.length === 0 && tracks.length === 0) {
       showState("state-empty");
       return;
     }
@@ -595,80 +650,102 @@ async function loadFolder(folderId){
     filteredTracks = tracks;
     renderList();
     showState(null);
-  } catch(err){
+  } catch(err) {
     console.error(err);
     showState("state-error");
-    $("error-msg").textContent = "Unable to connect to Google Drive. Please try again.";
+    $("error-msg").textContent = "Could not fetch Drive content.";
   }
 }
 
-function stripExt(name){
-  return name.replace(/\.[^/.]+$/, "");
-}
+function stripExt(name) { return name.replace(/\.[^/.]+$/, ""); }
 
-function renderList(){
+function renderList() {
   const wrap = $("list-wrap");
   const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;
-  if (!hasResults){
-    wrap.innerHTML = `<div class="empty-search">No matching items found.</div>`;
+  if (!hasResults) {
+    wrap.innerHTML = `<div class="state-panel"><p>No results found</p></div>`;
     return;
   }
-
   let html = "";
-
-  if (filteredFolders.length > 0){
+  if (filteredFolders.length > 0) {
     html += `<div class="section-label">FOLDERS</div>`;
     html += filteredFolders.map(f => `
       <div class="folder-row" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}">
-        <div class="ficon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a1 1 0 00-1 1v14a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1h-9l-2-3z"/></svg></div>
+        <div class="ficon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a1 1 0 00-1 1v14a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1h-9l-2-3z"/></svg></div>
         <div class="name">${escapeHtml(f.name)}</div>
-        <div class="chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></div>
       </div>`).join("");
   }
-
-  if (filteredTracks.length > 0){
-    html += `<div class="section-label">TRACKS</div>`;
-    html += filteredTracks.map((t, i) => {
-      const playing = t.id === currentPlayingId;
-      return `<div class="track ${playing?'playing':''}" data-id="${t.id}">
-        <div class="idx">${playing && isPlaying ? '♪' : i+1}</div>
-        <div class="meta">
+  if (filteredTracks.length > 0) {
+    html += `<div class="section-label">TRACKS (HOLD FOR OPTIONS)</div>`;
+    html += filteredTracks.map((t) => {
+      const isCur = t.id === currentPlayingId;
+      return `<div class="track ${isCur ? 'playing' : ''}" data-id="${t.id}">
+        <div class="meta" style="flex:1;min-width:0;">
           <div class="name">${escapeHtml(stripExt(t.name))}</div>
           <div class="sub">${(t.mimeType||'').replace('audio/','').toUpperCase()}</div>
         </div>
-        <button class="queue-btn" data-id="${t.id}">+ Queue</button>
       </div>`;
     }).join("");
   }
-
   wrap.innerHTML = html;
 
   wrap.querySelectorAll(".folder-row").forEach(el => {
     el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));
   });
+
+  // Long Press & Normal Click Handling
   wrap.querySelectorAll(".track").forEach(el => {
-    el.addEventListener("click", (e) => {
-      if (e.target.classList.contains("queue-btn")) return;
-      const trackId = el.dataset.id;
-      const trackIndex = tracks.findIndex(t => t.id === trackId);
-      if (trackIndex > -1){
-        playQueue = [...tracks];
-        queueIndex = trackIndex;
-        playQueueTrack(queueIndex);
+    let pressTimer = null;
+    let isLongPress = false;
+
+    const startPress = (e) => {
+      isLongPress = false;
+      pressTimer = setTimeout(() => {
+        isLongPress = true;
+        if (navigator.vibrate) navigator.vibrate(50);
+        const trackId = el.dataset.id;
+        const selectedTrack = tracks.find(t => t.id === trackId);
+        if (selectedTrack) openActionSheet(selectedTrack);
+      }, 500);
+    };
+
+    const cancelPress = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    };
+
+    el.addEventListener("touchstart", startPress, { passive: true });
+    el.addEventListener("touchend", (e) => {
+      cancelPress();
+      if (!isLongPress && e.cancelable) {
+        const trackId = el.dataset.id;
+        const trackIndex = tracks.findIndex(t => t.id === trackId);
+        if (trackIndex > -1) {
+          playQueue = [...tracks];
+          queueIndex = trackIndex;
+          playQueueTrack(queueIndex);
+        }
       }
     });
-  });
-  wrap.querySelectorAll(".queue-btn").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const trackId = btn.dataset.id;
-      const selectedTrack = tracks.find(t => t.id === trackId);
-      if (selectedTrack) addToQueue(selectedTrack);
+    el.addEventListener("touchmove", cancelPress);
+
+    // Desktop Mouse Fallback
+    el.addEventListener("mousedown", startPress);
+    el.addEventListener("mouseup", () => {
+      cancelPress();
+      if (!isLongPress) {
+        const trackId = el.dataset.id;
+        const trackIndex = tracks.findIndex(t => t.id === trackId);
+        if (trackIndex > -1) {
+          playQueue = [...tracks];
+          queueIndex = trackIndex;
+          playQueueTrack(queueIndex);
+        }
+      }
     });
   });
 }
 
-function escapeHtml(s){
+function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
@@ -679,241 +756,299 @@ $("search-input").addEventListener("input", (e) => {
   renderList();
 });
 
-// ====== QUEUE & PLAYBACK MODES ======
-function addToQueue(track){
-  if (playQueue.length === 0){
-    playQueue = [track];
+// ====== LONG PRESS CONTEXT ACTION SHEET ======
+function openActionSheet(track) {
+  selectedSheetTrack = track;
+  $("sheet-song-title").textContent = stripExt(track.name);
+  $("sheet-song-sub").textContent = (track.mimeType||'').replace('audio/','').toUpperCase();
+  $("action-sheet-backdrop").style.display = "flex";
+}
+
+$("action-sheet-backdrop").addEventListener("click", (e) => {
+  if (e.target === $("action-sheet-backdrop")) {
+    $("action-sheet-backdrop").style.display = "none";
+  }
+});
+
+$("sheet-play-next").addEventListener("click", () => {
+  if (!selectedSheetTrack) return;
+  if (playQueue.length === 0) {
+    playQueue = [selectedSheetTrack];
     queueIndex = 0;
     playQueueTrack(0);
+  } else {
+    playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);
+    showToast(`Will Play Next`);
+    renderQueueList();
+    preloadNextTrack();
+  }
+  $("action-sheet-backdrop").style.display = "none";
+});
+
+$("sheet-add-queue").addEventListener("click", () => {
+  if (!selectedSheetTrack) return;
+  if (playQueue.length === 0) {
+    playQueue = [selectedSheetTrack];
+    queueIndex = 0;
+    playQueueTrack(0);
+  } else {
+    playQueue.push(selectedSheetTrack);
+    showToast(`Added to End of Queue`);
+    renderQueueList();
+    preloadNextTrack();
+  }
+  $("action-sheet-backdrop").style.display = "none";
+});
+
+// ====== SWIPE SLIDER LOGIC ======
+function setSlide(index) {
+  currentSlideIndex = index;
+  $("stage-slider").style.transform = `translateX(-${index * 50}%)`;
+  $("toggle-queue-btn").classList.toggle("active", index === 1);
+  if (index === 1) renderQueueList();
+}
+
+$("toggle-queue-btn").addEventListener("click", () => {
+  setSlide(currentSlideIndex === 0 ? 1 : 0);
+});
+
+function setupSwipeGesture() {
+  const stage = $("stage-viewport");
+  let startX = 0, startY = 0;
+
+  stage.addEventListener("touchstart", (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  stage.addEventListener("touchend", (e) => {
+    const diffX = e.changedTouches[0].clientX - startX;
+    const diffY = e.changedTouches[0].clientY - startY;
+
+    // Pastikan leretan mendatar (horizontal) dan bukan menegak (vertical scroll)
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
+      if (diffX < 0 && currentSlideIndex === 0) {
+        setSlide(1); // Swipe Kiri -> Buka Queue
+      } else if (diffX > 0 && currentSlideIndex === 1) {
+        setSlide(0); // Swipe Kanan -> Buka Artwork
+      }
+    }
+  }, { passive: true });
+}
+
+function renderQueueList() {
+  const container = $("queue-items-wrap");
+  const upNext = playQueue.slice(queueIndex + 1);
+  if (upNext.length === 0) {
+    container.innerHTML = `<div style="font-size:13px; color:var(--text-sub); padding:16px 0;">No tracks queued next.</div>`;
     return;
   }
-  playQueue.push(track);
-  showToast(`Added to Queue: ${stripExt(track.name)}`);
-  updateQueueHint();
-  preloadNextTrack();
+  container.innerHTML = upNext.map((t, idx) => `
+    <div class="queue-row">
+      <div class="q-art">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+      </div>
+      <div class="q-details">
+        <div class="q-title">${escapeHtml(stripExt(t.name))}</div>
+        <div class="q-sub">${(t.mimeType||'').replace('audio/','').toUpperCase()}</div>
+      </div>
+      <button class="del-btn" data-subidx="${idx}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>
+      </button>
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".del-btn").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const subIdx = parseInt(btn.dataset.subidx);
+      playQueue.splice(queueIndex + 1 + subIdx, 1);
+      renderQueueList();
+      preloadNextTrack();
+    });
+  });
 }
 
-function updateQueueHint(){
-  const remaining = playQueue.length - 1 - queueIndex;
-  $("queue-hint").textContent = remaining > 0 ? `${remaining} more track${remaining === 1 ? '' : 's'} in Queue` : "Streaming directly from your Google Drive";
-}
-
-// Shuffle Toggle
+// Mode Toggles
 $("shuffle-btn").addEventListener("click", () => {
   isShuffle = !isShuffle;
   $("shuffle-btn").classList.toggle("active", isShuffle);
-  showToast(isShuffle ? "Shuffle On 🔀" : "Shuffle Off");
+  showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
 });
 
-// Loop Mode Toggle (0: Off -> 1: Loop All -> 2: Loop One)
 $("loop-btn").addEventListener("click", () => {
   loopMode = (loopMode + 1) % 3;
-  const loopBtn = $("loop-btn");
-  const loopBadge = $("loop-badge");
-
-  if (loopMode === 0){
-    loopBtn.classList.remove("active");
-    loopBadge.style.display = "none";
-    showToast("Repeat Off");
-  } else if (loopMode === 1){
-    loopBtn.classList.add("active");
-    loopBadge.style.display = "none";
-    showToast("Repeat All 🔁");
-  } else if (loopMode === 2){
-    loopBtn.classList.add("active");
-    loopBadge.style.display = "flex";
-    showToast("Repeat One 🔂");
+  const btn = $("loop-btn");
+  const badge = $("loop-badge");
+  if (loopMode === 0) {
+    btn.classList.remove("active");
+    badge.style.display = "none";
+  } else if (loopMode === 1) {
+    btn.classList.add("active");
+    badge.style.display = "none";
+  } else if (loopMode === 2) {
+    btn.classList.add("active");
+    badge.style.display = "block";
   }
 });
 
-function getNextTrackIndex(){
+function getNextTrackIndex() {
   if (playQueue.length === 0) return -1;
   if (loopMode === 2) return queueIndex;
-
-  if (isShuffle){
+  if (isShuffle) {
     if (playQueue.length === 1) return 0;
-    let nextIdx = queueIndex;
-    while (nextIdx === queueIndex){
-      nextIdx = Math.floor(Math.random() * playQueue.length);
-    }
-    return nextIdx;
+    let r = queueIndex;
+    while (r === queueIndex) { r = Math.floor(Math.random() * playQueue.length); }
+    return r;
   }
-
-  if (queueIndex < playQueue.length - 1){
-    return queueIndex + 1;
-  } else if (loopMode === 1){
-    return 0;
-  }
+  if (queueIndex < playQueue.length - 1) return queueIndex + 1;
+  if (loopMode === 1) return 0;
   return -1;
 }
 
-function getPrevTrackIndex(){
+function getPrevTrackIndex() {
   if (playQueue.length === 0) return -1;
   if (loopMode === 2) return queueIndex;
-
-  if (queueIndex > 0){
-    return queueIndex - 1;
-  } else if (loopMode === 1){
-    return playQueue.length - 1;
-  }
+  if (queueIndex > 0) return queueIndex - 1;
+  if (loopMode === 1) return playQueue.length - 1;
   return 0;
 }
 
-// ====== ARTWORK / METADATA ======
-function setArtwork(url){
-  const miniImg = $("mini-art-img"), miniFallback = $("mini-art-fallback");
-  const fullImg = $("full-art-img"), fullFallback = $("full-art-fallback");
-  if (url){
-    miniImg.src = url; miniImg.style.display = "block"; miniFallback.style.display = "none";
-    fullImg.src = url; fullImg.style.display = "block"; fullFallback.style.display = "none";
+// ====== ARTWORK & METADATA ======
+function setArtwork(url) {
+  const mImg = $("mini-art-img"), mFb = $("mini-fallback");
+  const lImg = $("large-art-img"), lFb = $("large-fallback");
+  const qImg = $("queue-mini-art");
+  const bg = $("ambient-backdrop");
+
+  if (url) {
+    mImg.src = url; mImg.style.display = "block"; mFb.style.display = "none";
+    lImg.src = url; lImg.style.display = "block"; lFb.style.display = "none";
+    qImg.src = url;
+    bg.style.backgroundImage = `url('${url}')`;
   } else {
-    miniImg.style.display = "none"; miniFallback.style.display = "block";
-    fullImg.style.display = "none"; fullFallback.style.display = "block";
+    mImg.style.display = "none"; mFb.style.display = "block";
+    lImg.style.display = "none"; lFb.style.display = "block";
+    qImg.src = "";
+    bg.style.backgroundImage = "none";
   }
 }
 
-function resetMetaFields(fallbackName){
-  $("mini-name").textContent = fallbackName;
-  $("full-name").textContent = fallbackName;
-  $("full-artist").style.display = "none";
-  $("full-album").style.display = "none";
+function resetFields(name) {
+  $("mini-name").textContent = name;
+  $("mini-sub").textContent = "Loading…";
+  $("full-name").textContent = name;
+  $("full-artist").textContent = "Google Drive Audio";
+  $("queue-cur-name").textContent = name;
+  $("queue-cur-artist").textContent = "Google Drive Audio";
   setArtwork(null);
 }
 
-function readTagsFromBlob(blob){
-  return new Promise((resolve) => {
-    if (typeof jsmediatags === "undefined"){ resolve(null); return; }
+function readTagsBlob(blob) {
+  return new Promise(resolve => {
+    if (typeof jsmediatags === "undefined") return resolve(null);
     jsmediatags.read(blob, {
-      onSuccess: (tag) => resolve(tag.tags || null),
+      onSuccess: tag => resolve(tag.tags || null),
       onError: () => resolve(null)
     });
   });
 }
 
-async function applyTags(blob, fallbackName, myLoadToken){
-  const tags = await readTagsFromBlob(blob);
-  if (myLoadToken !== loadToken) return;
+async function applyTags(blob, fallback, myToken) {
+  const tags = await readTagsBlob(blob);
+  if (myToken !== loadToken) return;
 
-  const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackName;
-  const artist = tags && tags.artist && tags.artist.trim();
-  const album = tags && tags.album && tags.album.trim();
+  const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallback;
+  const artist = (tags && tags.artist && tags.artist.trim()) ? tags.artist.trim() : "Unknown Artist";
 
-  $("mini-name").textContent = artist ? `${title} — ${artist}` : title;
+  $("mini-name").textContent = title;
+  $("mini-sub").textContent = artist;
   $("full-name").textContent = title;
+  $("full-artist").textContent = artist;
+  $("queue-cur-name").textContent = title;
+  $("queue-cur-artist").textContent = artist;
 
-  if (artist){ $("full-artist").textContent = artist; $("full-artist").style.display = "block"; }
-  else { $("full-artist").style.display = "none"; }
-
-  if (album){ $("full-album").textContent = album; $("full-album").style.display = "block"; }
-  else { $("full-album").style.display = "none"; }
-
-  let artworkUrl = null;
-  if (tags && tags.picture){
-    try{
+  let artUrl = null;
+  if (tags && tags.picture) {
+    try {
       const { data, format } = tags.picture;
       const artBlob = new Blob([new Uint8Array(data)], { type: format || "image/jpeg" });
-      if (currentArtUrl) URL.revokeObjectURL(currentArtUrl);
-      currentArtUrl = URL.createObjectURL(artBlob);
-      artworkUrl = currentArtUrl;
-      setArtwork(currentArtUrl);
-    } catch(e){
-      setArtwork(null);
-    }
+      if (currentArtBlobUrl) URL.revokeObjectURL(currentArtBlobUrl);
+      currentArtBlobUrl = URL.createObjectURL(artBlob);
+      artUrl = currentArtBlobUrl;
+      setArtwork(artUrl);
+    } catch(e) { setArtwork(null); }
   } else {
     setArtwork(null);
   }
 
-  updateMediaSessionMetadata(title, artist || "", album || "", artworkUrl);
+  updateMediaSession(title, artist, artUrl);
 }
 
-// ====== MEDIA SESSION ======
-function updateMediaSessionMetadata(title, artist, album, artworkUrl){
+function updateMediaSession(title, artist, artworkUrl) {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
-    title: title || "Peti Lagu",
-    artist: artist || "",
-    album: album || "",
+    title, artist,
     artwork: artworkUrl ? [
       { src: artworkUrl, sizes: "512x512", type: "image/jpeg" },
-      { src: artworkUrl, sizes: "256x256", type: "image/jpeg" },
-      { src: artworkUrl, sizes: "96x96", type: "image/jpeg" }
+      { src: artworkUrl, sizes: "256x256", type: "image/jpeg" }
     ] : []
   });
 }
 
-function setupMediaSessionHandlers(){
+function setupMediaSessionHandlers() {
   if (!("mediaSession" in navigator)) return;
-
-  navigator.mediaSession.setActionHandler("previoustrack", () => {
-    playPrev();
-  });
-  navigator.mediaSession.setActionHandler("nexttrack", () => {
-    playNext();
-  });
-
+  navigator.mediaSession.setActionHandler("previoustrack", () => playPrev());
+  navigator.mediaSession.setActionHandler("nexttrack", () => playNext());
   navigator.mediaSession.setActionHandler("play", () => {
-    audio.play();
-    isPlaying = true;
-    updatePlayIcons();
-    renderList();
-    navigator.mediaSession.playbackState = "playing";
+    audio.play(); isPlaying = true; updatePlayVisuals();
   });
-
   navigator.mediaSession.setActionHandler("pause", () => {
-    audio.pause();
-    isPlaying = false;
-    updatePlayIcons();
-    renderList();
-    navigator.mediaSession.playbackState = "paused";
+    audio.pause(); isPlaying = false; updatePlayVisuals();
   });
-
   try {
     navigator.mediaSession.setActionHandler("seekforward", null);
     navigator.mediaSession.setActionHandler("seekbackward", null);
-  } catch(e){}
+  } catch(e) {}
 }
 
-// ====== PRELOAD NEXT TRACK ======
-async function preloadNextTrack(){
+// ====== PRELOAD (BACKGROUND PLAYBACK CONTINUITY) ======
+async function preloadNextTrack() {
   const nextIdx = getNextTrackIndex();
-  if (nextIdx !== -1 && nextIdx < playQueue.length){
-    const nextTrack = playQueue[nextIdx];
-    if (preloadedTrackId === nextTrack.id && preloadedBlob) return;
+  if (nextIdx !== -1 && nextIdx < playQueue.length) {
+    const nextT = playQueue[nextIdx];
+    if (preloadedTrackId === nextT.id && preloadedBlob) return;
     try {
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${nextTrack.id}?alt=media`, {
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${nextT.id}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
-      if (res.ok){
+      if (res.ok) {
         preloadedBlob = await res.blob();
-        preloadedTrackId = nextTrack.id;
+        preloadedTrackId = nextT.id;
       }
-    } catch(e){
-      console.warn("Preload next track failed", e);
-    }
+    } catch(e) {}
   }
 }
 
 // ====== PLAYBACK ======
-async function playQueueTrack(idx){
+async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
   queueIndex = idx;
   const track = playQueue[idx];
   currentPlayingId = track.id;
-  const fallbackName = stripExt(track.name);
-  const myLoadToken = ++loadToken;
+  const fallback = stripExt(track.name);
+  const myToken = ++loadToken;
 
   $("mini-player").style.display = "flex";
-  resetMetaFields(fallbackName);
-  $("mini-status").textContent = "Loading…";
-  $("full-status").textContent = "Loading…";
-  updateMediaSessionMetadata(fallbackName, "", "", null);
+  resetFields(fallback);
   setupMediaSessionHandlers();
-  updateQueueHint();
+  updateMediaSession(fallback, "Google Drive", null);
+  if (currentSlideIndex === 1) renderQueueList();
   renderList();
 
-  try{
+  try {
     let blob = null;
-    if (preloadedTrackId === track.id && preloadedBlob){
+    if (preloadedTrackId === track.id && preloadedBlob) {
       blob = preloadedBlob;
       preloadedBlob = null;
       preloadedTrackId = null;
@@ -921,75 +1056,69 @@ async function playQueueTrack(idx){
       const res = await fetch(`https://www.googleapis.com/drive/v3/files/${track.id}?alt=media`, {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
-
-      if (res.status === 401){
+      if (res.status === 401) {
         authIntent = "track";
         tokenClient.requestAccessToken({ prompt: "" });
         return;
       }
-      if (!res.ok) throw new Error("Playback fetch failed " + res.status);
+      if (!res.ok) throw new Error("Audio stream failed");
       blob = await res.blob();
     }
 
-    if (myLoadToken !== loadToken) return;
+    if (myToken !== loadToken) return;
 
     if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
     currentAudioBlobUrl = URL.createObjectURL(blob);
     audio.src = currentAudioBlobUrl;
 
     await audio.play();
-    if (myLoadToken !== loadToken) return;
+    if (myToken !== loadToken) return;
 
     isPlaying = true;
-    updatePlayIcons();
-    renderList();
-    if ("mediaSession" in navigator) {
-      navigator.mediaSession.playbackState = "playing";
-      setupMediaSessionHandlers();
-    }
-
-    applyTags(blob, fallbackName, myLoadToken);
+    updatePlayVisuals();
+    applyTags(blob, fallback, myToken);
     preloadNextTrack();
 
-  } catch(err){
+  } catch(err) {
     console.error(err);
-    if (myLoadToken !== loadToken) return;
-    $("mini-status").textContent = "Error loading track";
-    $("full-status").textContent = "Error loading track";
+    if (myToken !== loadToken) return;
+    $("mini-sub").textContent = "Error loading track";
+    $("full-artist").textContent = "Playback error";
   }
 }
 
-function togglePlay(){
+function togglePlay() {
   if (queueIndex === -1) return;
-  if (isPlaying){ audio.pause(); isPlaying = false; }
+  if (isPlaying) { audio.pause(); isPlaying = false; }
   else { audio.play(); isPlaying = true; }
-  updatePlayIcons();
-  renderList();
-  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  updatePlayVisuals();
 }
 
-function updatePlayIcons(){
-  const iconPath = isPlaying
-    ? '<path d="M7 5h4v14H7zm6 0h4v14h-4z"/>'
+function updatePlayVisuals() {
+  const icon = isPlaying
+    ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>'
     : '<path d="M8 5v14l11-7z"/>';
-  $("mini-play-icon").innerHTML = iconPath;
-  $("big-play-icon").innerHTML = iconPath;
-  $("mini-status").textContent = isPlaying ? "Playing" : "Paused";
-  $("full-status").textContent = isPlaying ? "Streaming from Drive" : "Paused";
-}
+  $("mini-play-icon").innerHTML = icon;
+  $("big-play-icon").innerHTML = icon;
 
-function playNext(){ 
-  const nextIdx = getNextTrackIndex();
-  if (nextIdx !== -1) {
-    playQueueTrack(nextIdx);
+  const box = $("art-large-box");
+  if (isPlaying) box.classList.remove("paused");
+  else box.classList.add("paused");
+
+  renderList();
+  if ("mediaSession" in navigator) {
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }
 }
 
-function playPrev(){ 
-  const prevIdx = getPrevTrackIndex();
-  if (prevIdx !== -1) {
-    playQueueTrack(prevIdx);
-  }
+function playNext() {
+  const next = getNextTrackIndex();
+  if (next !== -1) playQueueTrack(next);
+}
+
+function playPrev() {
+  const prev = getPrevTrackIndex();
+  if (prev !== -1) playQueueTrack(prev);
 }
 
 $("mini-play").addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
@@ -998,7 +1127,7 @@ $("next-btn").addEventListener("click", playNext);
 $("prev-btn").addEventListener("click", playPrev);
 
 audio.addEventListener("ended", () => {
-  if (loopMode === 2){
+  if (loopMode === 2) {
     audio.currentTime = 0;
     audio.play();
   } else {
@@ -1009,38 +1138,37 @@ audio.addEventListener("ended", () => {
 $("mini-player").addEventListener("click", () => { $("full-player").style.display = "flex"; });
 $("collapse-btn").addEventListener("click", () => { $("full-player").style.display = "none"; });
 
-function fmtTime(s){
+function fmt(s) {
   if (!isFinite(s)) return "0:00";
   const m = Math.floor(s/60), sec = Math.floor(s%60);
   return `${m}:${sec.toString().padStart(2,'0')}`;
 }
+
 audio.addEventListener("timeupdate", () => {
   const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
-  $("mini-progress").style.width = pct + "%";
-  if (!seekDragging){
-    $("seek").value = pct;
-  }
-  $("time-cur").textContent = fmtTime(audio.currentTime);
-  $("time-dur").textContent = fmtTime(audio.duration);
+  if (!seeking) $("seek").value = pct;
+  $("time-cur").textContent = fmt(audio.currentTime);
+  const rem = audio.duration - audio.currentTime;
+  $("time-dur").textContent = (isFinite(rem) && rem > 0) ? `-${fmt(rem)}` : "0:00";
 
-  if ("mediaSession" in navigator && audio.duration && isFinite(audio.duration)){
-    try{
+  if ("mediaSession" in navigator && audio.duration && isFinite(audio.duration)) {
+    try {
       navigator.mediaSession.setPositionState({
         duration: audio.duration,
         playbackRate: audio.playbackRate,
         position: audio.currentTime
       });
-    } catch(e){ }
+    } catch(e) {}
   }
 });
 
-let seekDragging = false;
-$("seek").addEventListener("input", () => { seekDragging = true; });
+let seeking = false;
+$("seek").addEventListener("input", () => { seeking = true; });
 $("seek").addEventListener("change", () => {
-  if (audio.duration){
-    audio.currentTime = (parseFloat($("seek").value)/100) * audio.duration;
+  if (audio.duration) {
+    audio.currentTime = (parseFloat($("seek").value) / 100) * audio.duration;
   }
-  seekDragging = false;
+  seeking = false;
 });
 </script>
 </body>
