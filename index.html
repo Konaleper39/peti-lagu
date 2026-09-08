@@ -359,21 +359,23 @@ const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
 const ROOT_NAME = "MDP";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
-let accessToken = null;
+let accessToken = localStorage.getItem("petilagu_token") || null;
+let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
 let tokenClient = null;
-let authIntent = "initial"; // "initial" | "folder" | "track" — tells the token callback what to resume after a refresh
+let authIntent = "initial";
 
-let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }]; // navigation stack
-let currentFolders = [];   // sub-folders in the currently viewed folder
-let tracks = [];           // audio files in the currently viewed folder
+let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: ROOT_NAME }];
+let currentFolders = [];
+let tracks = [];
 let filteredFolders = [];
 let filteredTracks = [];
 
-let currentIndex = -1;         // index within `tracks` used for prev/next
-let currentPlayingId = null;   // drive file id of whatever is actually playing
-let currentArtUrl = null;      // object URL for extracted cover art
+let currentIndex = -1;
+let currentPlayingId = null;
+let currentArtUrl = null;
+let currentAudioBlobUrl = null;
 let isPlaying = false;
-let loadToken = 0; // guards against stale async results when switching tracks/folders fast
+let loadToken = 0;
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
@@ -389,23 +391,30 @@ function showState(name){
 
 // ====== AUTH ======
 window.onload = () => {
+  setupMediaSessionHandlers();
+
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
     callback: (resp) => {
       if (resp.error){
+        console.error(resp.error);
         if (authIntent === "track"){
           $("mini-status").textContent = "Sesi log masuk tamat";
           $("full-status").textContent = "Sesi log masuk tamat";
         } else {
           showState("state-error");
-          $("error-msg").textContent = "Log masuk gagal. Cuba lagi.";
+          $("error-msg").textContent = "Log masuk gagal. Sila cuba lagi.";
         }
         return;
       }
       accessToken = resp.access_token;
+      tokenExpiresAt = Date.now() + (parseInt(resp.expires_in || 3500, 10) * 1000);
+      localStorage.setItem("petilagu_token", accessToken);
+      localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
+
       if (authIntent === "track" && currentIndex !== -1){
-        playTrack(currentIndex); // resume the track that failed due to an expired token
+        playTrack(currentIndex);
       } else if (authIntent === "folder"){
         loadFolder(currentFolderId());
       } else {
@@ -413,7 +422,15 @@ window.onload = () => {
       }
     }
   });
-  setupMediaSessionHandlers();
+
+  // Auto-login jika token sedia ada belum tamat tempoh
+  if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {
+    onSignedIn();
+  } else if (accessToken) {
+    // Cuba silent refresh token jika dah hampir luput
+    authIntent = "initial";
+    tokenClient.requestAccessToken({ prompt: "" });
+  }
 };
 
 $("signin-btn").addEventListener("click", () => {
@@ -422,8 +439,12 @@ $("signin-btn").addEventListener("click", () => {
 });
 
 $("retry-btn").addEventListener("click", () => {
-  if (accessToken){ loadFolder(currentFolderId()); }
-  else { authIntent = "initial"; tokenClient.requestAccessToken(); }
+  if (accessToken && Date.now() < tokenExpiresAt){ 
+    loadFolder(currentFolderId()); 
+  } else { 
+    authIntent = "initial"; 
+    tokenClient.requestAccessToken({ prompt: "" }); 
+  }
 });
 
 function onSignedIn(){
@@ -466,7 +487,7 @@ function enterFolder(id, name){
   loadFolder(id);
 }
 
-// ====== DRIVE LISTING (folders + audio files inside a given folder) ======
+// ====== DRIVE LISTING ======
 async function loadFolder(folderId){
   showState("state-loading");
   renderBreadcrumb();
@@ -486,7 +507,6 @@ async function loadFolder(folderId){
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (res.status === 401){
         authIntent = "folder";
-        accessToken = null;
         tokenClient.requestAccessToken({ prompt: "" });
         return;
       }
@@ -513,7 +533,7 @@ async function loadFolder(folderId){
   } catch(err){
     console.error(err);
     showState("state-error");
-    $("error-msg").textContent = "Tak dapat sambung ke Google Drive. Cuba lagi.";
+    $("error-msg").textContent = "Tak dapat sambung ke Google Drive. Sila cuba lagi.";
   }
 }
 
@@ -576,15 +596,7 @@ $("search-input").addEventListener("input", (e) => {
   renderList();
 });
 
-// ====== DRIVE STREAMING URL ======
-// Google's media endpoint accepts the access token as a query param, which lets us
-// hand the URL straight to <audio> / jsmediatags so they can stream with native
-// HTTP range requests, instead of us downloading the whole file first.
-function driveMediaUrl(fileId){
-  return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&access_token=${encodeURIComponent(accessToken)}`;
-}
-
-// ====== ARTWORK / FALLBACK ======
+// ====== ARTWORK / METADATA ======
 function setArtwork(url){
   const miniImg = $("mini-art-img"), miniFallback = $("mini-art-fallback");
   const fullImg = $("full-art-img"), fullFallback = $("full-art-fallback");
@@ -605,22 +617,19 @@ function resetMetaFields(fallbackName){
   setArtwork(null);
 }
 
-// Reads ID3/M4A tags straight from the streaming URL. jsmediatags performs its own
-// small range requests to grab just the tag header/footer, so this doesn't need
-// (and doesn't wait for) the full file.
-function readTags(url){
+function readTagsFromBlob(blob){
   return new Promise((resolve) => {
     if (typeof jsmediatags === "undefined"){ resolve(null); return; }
-    jsmediatags.read(url, {
+    jsmediatags.read(blob, {
       onSuccess: (tag) => resolve(tag.tags || null),
-      onError: () => resolve(null)
+      onError: (e) => resolve(null)
     });
   });
 }
 
-async function applyTags(url, fallbackName, myLoadToken){
-  const tags = await readTags(url);
-  if (myLoadToken !== loadToken) return; // a newer track started loading meanwhile, discard
+async function applyTags(blob, fallbackName, myLoadToken){
+  const tags = await readTagsFromBlob(blob);
+  if (myLoadToken !== loadToken) return;
 
   const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackName;
   const artist = tags && tags.artist && tags.artist.trim();
@@ -654,7 +663,7 @@ async function applyTags(url, fallbackName, myLoadToken){
   updateMediaSessionMetadata(title, artist || "", album || "", artworkUrl);
 }
 
-// ====== MEDIA SESSION (lockscreen / Control Centre) ======
+// ====== MEDIA SESSION ======
 function updateMediaSessionMetadata(title, artist, album, artworkUrl){
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -689,7 +698,7 @@ function setupMediaSessionHandlers(){
   navigator.mediaSession.setActionHandler("nexttrack", playNext);
 }
 
-// ====== PLAYBACK ======
+// ====== PLAYBACK (FETCH SECURE BLOB) ======
 async function playTrack(index){
   if (index < 0 || index >= tracks.length) return;
   currentIndex = index;
@@ -702,40 +711,46 @@ async function playTrack(index){
   resetMetaFields(fallbackName);
   $("mini-status").textContent = "Memuatkan…";
   $("full-status").textContent = "Memuatkan…";
-  updateMediaSessionMetadata(fallbackName, "", "", null); // show something on lockscreen immediately
+  updateMediaSessionMetadata(fallbackName, "", "", null);
   renderList();
 
-  const url = driveMediaUrl(track.id);
-  audio.src = url;
-
   try{
-    await audio.play(); // starts streaming right away — no waiting on tags or a full download
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${track.id}?alt=media`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (res.status === 401){
+      authIntent = "track";
+      tokenClient.requestAccessToken({ prompt: "" });
+      return;
+    }
+    if (!res.ok) throw new Error("Playback fetch failed " + res.status);
+
+    const blob = await res.blob();
     if (myLoadToken !== loadToken) return;
+
+    if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
+    currentAudioBlobUrl = URL.createObjectURL(blob);
+    audio.src = currentAudioBlobUrl;
+
+    await audio.play();
+    if (myLoadToken !== loadToken) return;
+
     isPlaying = true;
     updatePlayIcons();
     renderList();
     if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
+
+    // Extract tags dari Blob di latar belakang
+    applyTags(blob, fallbackName, myLoadToken);
+
   } catch(err){
     console.error(err);
     if (myLoadToken !== loadToken) return;
     $("mini-status").textContent = "Ralat memuatkan lagu";
     $("full-status").textContent = "Ralat memuatkan lagu";
-    return;
   }
-
-  // Tag + artwork extraction happens in the background and never blocks playback.
-  applyTags(url, fallbackName, myLoadToken);
 }
-
-// If the stream errors out mid-play (e.g. the access token expired), try a silent
-// token refresh once and resume the same track automatically.
-audio.addEventListener("error", () => {
-  if (currentPlayingId && accessToken){
-    authIntent = "track";
-    accessToken = null;
-    tokenClient.requestAccessToken({ prompt: "" });
-  }
-});
 
 function togglePlay(){
   if (currentIndex === -1) return;
@@ -789,7 +804,7 @@ audio.addEventListener("timeupdate", () => {
         playbackRate: audio.playbackRate,
         position: audio.currentTime
       });
-    } catch(e){ /* not fatal — some browsers are picky about timing */ }
+    } catch(e){ }
   }
 });
 
