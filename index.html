@@ -813,24 +813,38 @@ $("toggle-queue-btn").addEventListener("click", () => {
 });
 
 function setupSwipeGesture() {
-  const stage = $("stage-viewport");
+  const player = $("full-player");
   let startX = 0, startY = 0;
 
-  stage.addEventListener("touchstart", (e) => {
+  player.addEventListener("touchstart", (e) => {
+    // Jangan ganggu gesture kalau user tengah drag slider seek bar
+    if (e.target.id === "seek") return;
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
   }, { passive: true });
 
-  stage.addEventListener("touchend", (e) => {
+  player.addEventListener("touchend", (e) => {
+    if (e.target.id === "seek") return;
     const diffX = e.changedTouches[0].clientX - startX;
     const diffY = e.changedTouches[0].clientY - startY;
 
-    // Pastikan leretan mendatar (horizontal) dan bukan menegak (vertical scroll)
+    // 1. Swipe ke bawah: Tutup full player (Kembali ke laman utama)
+    if (diffY > 60 && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
+      // Pastikan kalau tengah dalam queue list, user bukan tengah scroll ke atas senarai lagu
+      const queueWrap = $("queue-items-wrap");
+      if (currentSlideIndex === 1 && queueWrap && queueWrap.scrollTop > 10) {
+        return;
+      }
+      $("full-player").style.display = "none";
+      return;
+    }
+
+    // 2. Swipe kiri & kanan: Tukar antara Artwork dan Queue
     if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
       if (diffX < 0 && currentSlideIndex === 0) {
-        setSlide(1); // Swipe Kiri -> Buka Queue
+        setSlide(1); // Swipe kiri -> Buka Queue
       } else if (diffX > 0 && currentSlideIndex === 1) {
-        setSlide(0); // Swipe Kanan -> Buka Artwork
+        setSlide(0); // Swipe kanan -> Balik ke Artwork
       }
     }
   }, { passive: true });
