@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Peti Lagu</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
@@ -122,9 +122,8 @@
   #full-player {
     position: fixed; inset: 0; z-index: 100;
     display: none; flex-direction: column;
-    padding: 16px 24px max(24px, env(safe-area-inset-bottom));
+    padding: 12px 24px max(24px, env(safe-area-inset-bottom));
     overflow: hidden; background: #1c1c1e;
-    touch-action: pan-y;
   }
   #ambient-backdrop {
     position: absolute; inset: -40px;
@@ -137,37 +136,23 @@
     position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: -1;
   }
 
+  .top-bar-controls {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .collapse-btn-icon {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    padding: 8px 0; cursor: pointer; display: flex; align-items: center;
+  }
   .grabber-bar {
     width: 38px; height: 5px; background: rgba(255,255,255,0.3);
-    border-radius: 3px; margin: 4px auto 16px; cursor: pointer;
+    border-radius: 3px; cursor: pointer; margin: 0 auto;
   }
 
-  .stage-viewport {
-    flex: 1;
-    position: relative;
-    width: 100%;
-    overflow: hidden; /* Kunci supaya tak bocor ke kanan */
-    min-height: 0;
+  /* Views */
+  #view-artwork {
+    flex: 1; display: flex; flex-direction: column; width: 100%; min-height: 0;
   }
-  .stage-slider {
-    display: flex;
-    width: 200%;
-    height: 100%;
-    transform: translateX(0%);
-    transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
-  }
-  .stage-panel-inner {
-    width: 50%; /* Tepat separuh daripada 200% = 100% skrin telefon */
-    max-width: 50%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    overflow: hidden;
-    padding: 0 4px;
-    box-sizing: border-box;
-  }
-
   .art-large-wrap {
     flex: 1; display: flex; align-items: center; justify-content: center;
     min-height: 0; padding: 10px 0 20px;
@@ -195,8 +180,11 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
+  #view-queue {
+    flex: 1; display: none; flex-direction: column; width: 100%; min-height: 0;
+  }
   .queue-header-track {
-    display: flex; align-items: center; gap: 14px; padding-bottom: 12px;
+    display: flex; align-items: center; gap: 14px; padding: 6px 0 14px;
   }
   .queue-header-art {
     width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
@@ -239,7 +227,8 @@
     cursor: pointer;
   }
 
-  .scrubber-wrap { margin-top: 14px; }
+  /* Scrubber & Controls */
+  .scrubber-wrap { margin-top: 14px; width: 100%; }
   #seek {
     -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px;
     background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
@@ -272,6 +261,7 @@
   }
   .footer-btn.active { color: #fff; background: var(--glass-pill); }
 
+  /* Context Menu */
   #action-sheet-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.55);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
@@ -371,58 +361,59 @@
     </button>
   </div>
 
-  <!-- Full Player -->
+  <!-- Full Player (Button-Driven) -->
   <div id="full-player">
     <div id="ambient-backdrop"></div>
     <div id="ambient-dimmer"></div>
-    <div class="grabber-bar" id="collapse-btn"></div>
 
-    <div class="stage-viewport" id="stage-viewport">
-      <div class="stage-slider" id="stage-slider">
-        
-        <!-- Screen 1: Artwork -->
-        <div class="stage-panel-inner">
-          <div class="art-large-wrap">
-            <div class="art-large paused" id="art-large-box">
-              <img id="large-art-img" alt="" />
-              <svg id="large-fallback" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
-            </div>
-          </div>
-          <div class="track-headline">
-            <div class="titles">
-              <div class="t-name" id="full-name">—</div>
-              <div class="t-artist" id="full-artist">—</div>
-            </div>
-          </div>
+    <div class="top-bar-controls">
+      <button class="collapse-btn-icon" id="btn-back-home" title="Back to Library">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="grabber-bar" id="collapse-grabber" title="Close Player"></div>
+      <div style="width:24px;"></div>
+    </div>
+
+    <!-- View 1: Artwork -->
+    <div id="view-artwork">
+      <div class="art-large-wrap">
+        <div class="art-large paused" id="art-large-box">
+          <img id="large-art-img" alt="" />
+          <svg id="large-fallback" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
         </div>
-
-        <!-- Screen 2: Queue -->
-        <div class="stage-panel-inner" style="padding-left: 6px;">
-          <div class="queue-header-track">
-            <div class="queue-header-art">
-              <img id="queue-mini-art" src="" alt="" />
-            </div>
-            <div class="queue-header-info">
-              <div class="q-name" id="queue-cur-name">—</div>
-              <div class="q-artist" id="queue-cur-artist">—</div>
-            </div>
-          </div>
-
-          <div class="pill-bar">
-            <button class="pill-btn" id="shuffle-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
-            </button>
-            <button class="pill-btn" id="loop-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
-              <span class="pill-badge" id="loop-badge" style="display:none;">1</span>
-            </button>
-          </div>
-
-          <div class="queue-label">Playing Next</div>
-          <div class="queue-list-container" id="queue-items-wrap"></div>
-        </div>
-
       </div>
+      <div class="track-headline">
+        <div class="titles">
+          <div class="t-name" id="full-name">—</div>
+          <div class="t-artist" id="full-artist">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View 2: Queue List -->
+    <div id="view-queue">
+      <div class="queue-header-track">
+        <div class="queue-header-art">
+          <img id="queue-mini-art" src="" alt="" />
+        </div>
+        <div class="queue-header-info">
+          <div class="q-name" id="queue-cur-name">—</div>
+          <div class="q-artist" id="queue-cur-artist">—</div>
+        </div>
+      </div>
+
+      <div class="pill-bar">
+        <button class="pill-btn" id="shuffle-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 3h5v5M4 20l17-17M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
+        </button>
+        <button class="pill-btn" id="loop-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+          <span class="pill-badge" id="loop-badge" style="display:none;">1</span>
+        </button>
+      </div>
+
+      <div class="queue-label">Playing Next</div>
+      <div class="queue-list-container" id="queue-items-wrap"></div>
     </div>
 
     <!-- Scrubber -->
@@ -434,7 +425,7 @@
       </div>
     </div>
 
-    <!-- Big Controls -->
+    <!-- Transport Controls -->
     <div class="playback-row">
       <button class="btn-transport" id="prev-btn">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
@@ -447,16 +438,16 @@
       </button>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer Switcher -->
     <div class="footer-row">
       <div style="width:36px;"></div>
-      <button class="footer-btn" id="toggle-queue-btn">
+      <button class="footer-btn" id="toggle-queue-btn" title="View Queue">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
       </button>
     </div>
   </div>
 
-  <!-- Action Sheet -->
+  <!-- Context Action Sheet -->
   <div id="action-sheet-backdrop">
     <div id="action-sheet">
       <div class="sheet-header">
@@ -510,11 +501,9 @@ let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
 
-// Dual pre-cache for seamless lockscreen transitions
 const blobCache = new Map();
-
 let selectedSheetTrack = null;
-let currentSlideIndex = 0;
+let inQueueMode = false;
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
@@ -535,7 +524,6 @@ function showState(name) {
   $("breadcrumb-wrap").style.display = (name === "state-signed-out") ? "none" : "flex";
 }
 
-// Clean Track & Artist Formatter
 function stripExt(name) {
   let clean = name.replace(/\.[^/.]+$/, "");
   clean = clean.replace(/_+-_+|_+-\s*|\s*-_+/g, " - ");
@@ -558,7 +546,6 @@ function parseArtistTitle(rawName) {
 // ====== AUTHENTICATION ======
 window.onload = () => {
   setupMediaSessionHandlers();
-  setupSwipeGesture();
 
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -746,7 +733,7 @@ function renderList() {
         const trackId = el.dataset.id;
         const trackIndex = tracks.findIndex(t => t.id === trackId);
         if (trackIndex > -1) {
-          playQueue = [...tracks];
+          playQueue = tracks.slice();
           queueIndex = trackIndex;
           playQueueTrack(queueIndex);
         }
@@ -761,7 +748,7 @@ function renderList() {
         const trackId = el.dataset.id;
         const trackIndex = tracks.findIndex(t => t.id === trackId);
         if (trackIndex > -1) {
-          playQueue = [...tracks];
+          playQueue = tracks.slice();
           queueIndex = trackIndex;
           playQueueTrack(queueIndex);
         }
@@ -826,48 +813,26 @@ $("sheet-add-queue").addEventListener("click", () => {
   $("action-sheet-backdrop").style.display = "none";
 });
 
-// ====== SWIPE GESTURE SETUP ======
-function setSlide(index) {
-  currentSlideIndex = index;
-  $("stage-slider").style.transform = index === 1 ? "translateX(-50%)" : "translateX(0%)";
-  $("toggle-queue-btn").classList.toggle("active", index === 1);
-  if (index === 1) renderQueueList();
+// ====== BUTTON NAVIGATION (VIEW QUEUE & CLOSE PLAYER) ======
+function setQueueMode(showQueue) {
+  inQueueMode = showQueue;
+  $("view-artwork").style.display = showQueue ? "none" : "flex";
+  $("view-queue").style.display = showQueue ? "flex" : "none";
+  $("toggle-queue-btn").classList.toggle("active", showQueue);
+  if (showQueue) renderQueueList();
 }
 
 $("toggle-queue-btn").addEventListener("click", () => {
-  setSlide(currentSlideIndex === 0 ? 1 : 0);
+  setQueueMode(!inQueueMode);
 });
 
-function setupSwipeGesture() {
-  const player = $("full-player");
-  let startX = 0, startY = 0;
-
-  player.addEventListener("touchstart", (e) => {
-    if (e.target.id === "seek") return;
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-  }, { passive: true });
-
-  player.addEventListener("touchend", (e) => {
-    if (e.target.id === "seek") return;
-    const diffX = e.changedTouches[0].clientX - startX;
-    const diffY = e.changedTouches[0].clientY - startY;
-
-    // Slide down to dismiss full player
-    if (diffY > 60 && Math.abs(diffY) > Math.abs(diffX) * 1.2) {
-      const qWrap = $("queue-items-wrap");
-      if (currentSlideIndex === 1 && qWrap && qWrap.scrollTop > 10) return;
-      $("full-player").style.display = "none";
-      return;
-    }
-
-    // Horizontal slide (Artwork <-> Queue)
-    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 40) {
-      if (diffX < 0 && currentSlideIndex === 0) setSlide(1);
-      else if (diffX > 0 && currentSlideIndex === 1) setSlide(0);
-    }
-  }, { passive: true });
-}
+// Return to home / library buttons
+$("btn-back-home").addEventListener("click", () => {
+  $("full-player").style.display = "none";
+});
+$("collapse-grabber").addEventListener("click", () => {
+  $("full-player").style.display = "none";
+});
 
 function renderQueueList() {
   const container = $("queue-items-wrap");
@@ -979,7 +944,7 @@ function setupMediaSessionHandlers() {
   } catch(e) {}
 }
 
-// ====== CACHE & STREAM ENGINE (PREVENTS LOCKSCREEN STALL) ======
+// ====== CACHE & PLAYBACK ======
 async function fetchTrackBlob(trackId) {
   if (blobCache.has(trackId)) return blobCache.get(trackId);
   try {
@@ -989,7 +954,6 @@ async function fetchTrackBlob(trackId) {
     if (!res.ok) return null;
     const blob = await res.blob();
     blobCache.set(trackId, blob);
-    // Keep cache light (max 4 files)
     if (blobCache.size > 4) {
       const oldestKey = blobCache.keys().next().value;
       blobCache.delete(oldestKey);
@@ -1000,7 +964,6 @@ async function fetchTrackBlob(trackId) {
   }
 }
 
-// Pre-fetches Next and Prev track so skips work without waking the network
 function prepareSurroundingTracks() {
   const nextIdx = getNextTrackIndex();
   if (nextIdx !== -1 && playQueue[nextIdx]) {
@@ -1012,7 +975,6 @@ function prepareSurroundingTracks() {
   }
 }
 
-// ====== PLAYBACK CONTROLLER ======
 async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
   queueIndex = idx;
@@ -1025,7 +987,7 @@ async function playQueueTrack(idx) {
   resetFields(parsed.title, parsed.artist);
   setupMediaSessionHandlers();
   updateMediaSession(parsed.title, parsed.artist, null);
-  if (currentSlideIndex === 1) renderQueueList();
+  if (inQueueMode) renderQueueList();
   renderList();
 
   try {
@@ -1044,8 +1006,6 @@ async function playQueueTrack(idx) {
     isPlaying = true;
     updatePlayVisuals();
     applyTags(blob, parsed.title, parsed.artist, myToken);
-    
-    // Prepare next & prev immediately after audio starts
     prepareSurroundingTracks();
 
   } catch(err) {
@@ -1174,8 +1134,10 @@ audio.addEventListener("ended", () => {
   }
 });
 
-$("mini-player").addEventListener("click", () => { $("full-player").style.display = "flex"; });
-$("collapse-btn").addEventListener("click", () => { $("full-player").style.display = "none"; });
+$("mini-player").addEventListener("click", () => {
+  setQueueMode(false);
+  $("full-player").style.display = "flex";
+});
 
 function fmt(s) {
   if (!isFinite(s)) return "0:00";
