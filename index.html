@@ -96,21 +96,23 @@
   .folder-row .name, .track .name { font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track.playing .name { color: #ff375f; font-weight: 600; }
   .track .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+
   #mini-progress {
-  position: absolute;
-  bottom: 0;
-  left: 12px;
-  right: 12px;
-  height: 2.5px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 0 0 14px 14px;
-  overflow: hidden;
-}
-#mini-progress-fill {
-  width: 0%;
-  height: 100%;
-  background: #fff;
-}
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 0 0 14px 14px;
+    overflow: hidden;
+  }
+  #mini-progress-fill {
+    width: 0%;
+    height: 100%;
+    background: #fff;
+    transition: width 0.15s linear;
+  }
 
   /* Mini Player */
   #mini-player {
@@ -377,7 +379,7 @@
     <div id="mini-progress"><div id="mini-progress-fill"></div></div>
   </div>
 
-  <!-- Full Player (Button-Driven) -->
+  <!-- Full Screen Player -->
   <div id="full-player">
     <div id="ambient-backdrop"></div>
     <div id="ambient-dimmer"></div>
@@ -492,7 +494,7 @@
 const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";
 const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
-let rootFolderName = "Drive"; // Nama sandaran sementara
+let rootFolderName = "Drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
 let accessToken = localStorage.getItem("petilagu_token") || null;
@@ -516,6 +518,9 @@ let currentArtBlobUrl = null;
 let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
+
+let currentFetchController = null;
+let prefetchTimer = null;
 
 const blobCache = new Map();
 let selectedSheetTrack = null;
@@ -607,7 +612,6 @@ async function onSignedIn() {
   $("user-chip").style.display = "flex";
   $("user-chip").innerHTML = `<span>Connected</span>`;
 
-  // Tarik nama folder terus dari Google Drive
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=name`, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -825,7 +829,7 @@ $("sheet-play-next").addEventListener("click", () => {
     playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);
     showToast(`Will Play Next`);
     renderQueueList();
-    prepareSurroundingTracks();
+    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
@@ -840,7 +844,7 @@ $("sheet-add-queue").addEventListener("click", () => {
     playQueue.push(selectedSheetTrack);
     showToast(`Added to Queue`);
     renderQueueList();
-    prepareSurroundingTracks();
+    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
@@ -858,7 +862,6 @@ $("toggle-queue-btn").addEventListener("click", () => {
   setQueueMode(!inQueueMode);
 });
 
-// Return to home / library buttons
 $("btn-back-home").addEventListener("click", () => {
   $("full-player").style.display = "none";
 });
@@ -896,7 +899,7 @@ function renderQueueList() {
       const subIdx = parseInt(btn.dataset.subidx);
       playQueue.splice(queueIndex + 1 + subIdx, 1);
       renderQueueList();
-      prepareSurroundingTracks();
+      schedulePrefetch();
     });
   });
 }
@@ -907,7 +910,7 @@ $("shuffle-btn").addEventListener("click", () => {
   localStorage.setItem("petilagu_shuffle", isShuffle);
   $("shuffle-btn").classList.toggle("active", isShuffle);
   showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
-  prepareSurroundingTracks();
+  schedulePrefetch();
 });
 
 $("loop-btn").addEventListener("click", () => {
@@ -974,12 +977,13 @@ function setupMediaSessionHandlers() {
   } catch(e) {}
 }
 
-// ====== CACHE & PLAYBACK ======
-async function fetchTrackBlob(trackId) {
+// ====== CACHE & PLAYBACK (OPTIMIZED FOR SAFARI / IOS) ======
+async function fetchTrackBlob(trackId, signal = null) {
   if (blobCache.has(trackId)) return blobCache.get(trackId);
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: signal
     });
     if (!res.ok) return null;
     const blob = await res.blob();
@@ -992,6 +996,13 @@ async function fetchTrackBlob(trackId) {
   } catch(e) {
     return null;
   }
+}
+
+function schedulePrefetch() {
+  clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(() => {
+    prepareSurroundingTracks();
+  }, 3500); // Beri ruang 3.5s untuk lagu semasa dimainkan lancar sebelum fetch track lain
 }
 
 function prepareSurroundingTracks() {
@@ -1007,11 +1018,26 @@ function prepareSurroundingTracks() {
 
 async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
+
+  // Batalkan muat turun sebelumnya jika masih berjalan
+  if (currentFetchController) {
+    currentFetchController.abort();
+  }
+  currentFetchController = new AbortController();
+  const fetchSignal = currentFetchController.signal;
+
+  clearTimeout(prefetchTimer);
+
   queueIndex = idx;
   const track = playQueue[idx];
   currentPlayingId = track.id;
   const parsed = parseArtistTitle(track.name);
   const myToken = ++loadToken;
+
+  // Hentikan sebarang audio yang sedang dimainkan
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
 
   $("mini-player").style.display = "flex";
   resetFields(parsed.title, parsed.artist);
@@ -1021,24 +1047,26 @@ async function playQueueTrack(idx) {
   renderList();
 
   try {
-    let blob = await fetchTrackBlob(track.id);
+    let blob = await fetchTrackBlob(track.id, fetchSignal);
+    if (fetchSignal.aborted || myToken !== loadToken) return;
     if (!blob) throw new Error("Fetch failed");
-
-    if (myToken !== loadToken) return;
 
     if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
     currentAudioBlobUrl = URL.createObjectURL(blob);
     audio.src = currentAudioBlobUrl;
 
     await audio.play();
-    if (myToken !== loadToken) return;
+    if (fetchSignal.aborted || myToken !== loadToken) return;
 
     isPlaying = true;
     updatePlayVisuals();
     applyTags(blob, parsed.title, parsed.artist, myToken);
-    prepareSurroundingTracks();
+    schedulePrefetch();
 
   } catch(err) {
+    if (err.name === "AbortError" || fetchSignal.aborted) {
+      return;
+    }
     console.error(err);
     if (myToken !== loadToken) return;
     $("mini-sub").textContent = "Error loading track";
