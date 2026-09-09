@@ -91,7 +91,7 @@
   .folder-row .name, .track .name { font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track.playing .name { color: var(--accent); font-weight: 600; }
   .track .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-  
+
   /* Mini Player */
   #mini-player {
     position: absolute; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom));
@@ -113,7 +113,7 @@
   #mini-player .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #mini-player .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ctrl-btn { background: none; border: none; color: #fff; padding: 6px; cursor: pointer; }
-  
+
   /* Mini progress bar */
   #mini-progress {
     position: absolute; left: 0; right: 0; bottom: 0;
@@ -124,7 +124,7 @@
     background: var(--accent);
     transition: width 0.15s linear;
   }
-  
+
   /* Full Screen Player */
   #full-player {
     position: fixed; inset: 0; z-index: 100;
@@ -154,7 +154,7 @@
     width: 38px; height: 5px; background: rgba(255,255,255,0.3);
     border-radius: 3px; cursor: pointer; margin: 0 auto;
   }
-  
+
   /* Views */
   #view-artwork {
     flex: 1; display: flex; flex-direction: column; width: 100%; min-height: 0;
@@ -184,6 +184,7 @@
     font-size: 16px; color: var(--text-sub); margin-top: 3px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+
   #view-queue {
     flex: 1; display: none; flex-direction: column; width: 100%; min-height: 0;
   }
@@ -249,7 +250,7 @@
     border: none; color: #fff; display: flex; align-items: center; justify-content: center;
     cursor: pointer;
   }
-  
+
   /* Scrubber & Controls */
   .scrubber-wrap { margin-top: 14px; width: 100%; }
   #seek {
@@ -281,7 +282,7 @@
     cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   }
   .footer-btn.active { color: #fff; background: var(--glass-pill); }
-  
+
   /* Context Menu */
   #action-sheet-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.55);
@@ -356,7 +357,7 @@
     <p>No playable audio files found in this directory.</p>
   </div>
   <div id="list-wrap"></div>
-  
+
   <!-- Mini Player -->
   <div id="mini-player">
     <div class="art">
@@ -372,7 +373,7 @@
     </button>
     <div id="mini-progress"><div id="mini-progress-bar"></div></div>
   </div>
-  
+
   <!-- Full Screen Player -->
   <div id="full-player">
     <div id="ambient-backdrop"></div>
@@ -384,7 +385,7 @@
       <div class="grabber-bar" id="collapse-grabber" title="Close Player"></div>
       <div style="width:24px;"></div>
     </div>
-    
+
     <!-- View 1: Artwork -->
     <div id="view-artwork">
       <div class="art-large-wrap">
@@ -400,7 +401,7 @@
         </div>
       </div>
     </div>
-    
+
     <!-- View 2: Queue List -->
     <div id="view-queue">
       <div class="queue-header-track">
@@ -427,7 +428,7 @@
       </div>
       <div class="queue-list-container" id="queue-items-wrap"></div>
     </div>
-    
+
     <!-- Scrubber -->
     <div class="scrubber-wrap">
       <input type="range" id="seek" min="0" max="100" value="0" />
@@ -436,7 +437,7 @@
         <span id="time-dur">-0:00</span>
       </div>
     </div>
-    
+
     <!-- Transport Controls -->
     <div class="playback-row">
       <button class="btn-transport" id="prev-btn">
@@ -449,7 +450,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
       </button>
     </div>
-    
+
     <!-- Footer Switcher -->
     <div class="footer-row">
       <div style="width:36px;"></div>
@@ -458,7 +459,7 @@
       </button>
     </div>
   </div>
-  
+
   <!-- Context Action Sheet -->
   <div id="action-sheet-backdrop">
     <div id="action-sheet">
@@ -1007,23 +1008,56 @@ function setupMediaSessionHandlers() {
   } catch(e) {}
 }
 
-// ====== CACHE & PLAYBACK (WITH ABORTCONTROLLER & SAFARI OPTIMIZATION) ======
-async function fetchTrackBlob(trackId, signal = null) {
-  if (blobCache.has(trackId)) return blobCache.get(trackId);
+// ====== CHUNKED FAST-SLICE PLAYBACK ENGINE ======
+async function fetchTrackFast(trackId, signal) {
+  if (blobCache.has(trackId)) {
+    return { blob: blobCache.get(trackId), isFull: true };
+  }
+
+  // Muat turun 1.5MB pertama (~0.3s) menggunakan HTTP Range
+  try {
+    const rangeRes = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Range: "bytes=0-1572863"
+      },
+      signal: signal
+    });
+
+    if (rangeRes.status === 206 || rangeRes.ok) {
+      const chunkBlob = await rangeRes.blob();
+      return { blob: chunkBlob, isFull: false };
+    }
+  } catch (e) {
+    if (e.name === "AbortError" || signal.aborted) throw e;
+  }
+
+  // Fallback sekiranya Drive menolak header Range
+  const fullRes = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    signal: signal
+  });
+  if (!fullRes.ok) throw new Error("Fetch failed");
+  const fullBlob = await fullRes.blob();
+  blobCache.set(trackId, fullBlob);
+  return { blob: fullBlob, isFull: true };
+}
+
+async function fetchFullTrackBackground(trackId, signal) {
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
       headers: { Authorization: `Bearer ${accessToken}` },
       signal: signal
     });
     if (!res.ok) return null;
-    const blob = await res.blob();
-    blobCache.set(trackId, blob);
+    const fullBlob = await res.blob();
+    blobCache.set(trackId, fullBlob);
     if (blobCache.size > 4) {
       const oldestKey = blobCache.keys().next().value;
       blobCache.delete(oldestKey);
     }
-    return blob;
-  } catch(e) {
+    return fullBlob;
+  } catch (e) {
     return null;
   }
 }
@@ -1032,24 +1066,24 @@ function schedulePrefetch() {
   clearTimeout(prefetchTimer);
   prefetchTimer = setTimeout(() => {
     prepareSurroundingTracks();
-  }, 3500); // 3.5s jeda agar pembiayaan data lagu semasa siap sepenuhnya
+  }, 4000);
 }
 
 function prepareSurroundingTracks() {
   const nextIdx = getNextTrackIndex();
   if (nextIdx !== -1 && playQueue[nextIdx]) {
-    fetchTrackBlob(playQueue[nextIdx].id);
+    fetchFullTrackBackground(playQueue[nextIdx].id, (new AbortController()).signal);
   }
   const prevIdx = getPrevTrackIndex();
   if (prevIdx !== -1 && playQueue[prevIdx]) {
-    fetchTrackBlob(playQueue[prevIdx].id);
+    fetchFullTrackBackground(playQueue[prevIdx].id, (new AbortController()).signal);
   }
 }
 
 async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
 
-  // Batalkan muat turun sebelumnya secara serta-merta
+  // Batalkan muat turun sebelumnya serta-merta
   if (currentFetchController) {
     currentFetchController.abort();
   }
@@ -1064,7 +1098,7 @@ async function playQueueTrack(idx) {
   const parsed = parseArtistTitle(track.name);
   const myToken = ++loadToken;
 
-  // Bebaskan audio sedia ada serta-merta
+  // Hentikan audio lama serta-merta
   audio.pause();
   audio.removeAttribute("src");
   audio.load();
@@ -1077,12 +1111,12 @@ async function playQueueTrack(idx) {
   renderList();
 
   try {
-    let blob = await fetchTrackBlob(track.id, fetchSignal);
+    // 1. Dapatkan 1.5MB awal untuk mula bersuara serta-merta
+    const fastResult = await fetchTrackFast(track.id, fetchSignal);
     if (fetchSignal.aborted || myToken !== loadToken) return;
-    if (!blob) throw new Error("Fetch failed");
 
     if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
-    currentAudioBlobUrl = URL.createObjectURL(blob);
+    currentAudioBlobUrl = URL.createObjectURL(fastResult.blob);
     audio.src = currentAudioBlobUrl;
 
     await audio.play();
@@ -1090,13 +1124,33 @@ async function playQueueTrack(idx) {
 
     isPlaying = true;
     updatePlayVisuals();
-    applyTags(blob, parsed.title, parsed.artist, myToken);
-    schedulePrefetch();
+
+    // 2. Jika bukan fail penuh, sedut baki fail penuh di latar belakang
+    if (!fastResult.isFull) {
+      fetchFullTrackBackground(track.id, fetchSignal).then((fullBlob) => {
+        if (!fullBlob || fetchSignal.aborted || myToken !== loadToken) return;
+
+        const curTime = audio.currentTime;
+        const wasPlaying = !audio.paused;
+
+        const newUrl = URL.createObjectURL(fullBlob);
+        audio.src = newUrl;
+        audio.currentTime = curTime;
+        if (wasPlaying) audio.play().catch(() => {});
+
+        if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
+        currentAudioBlobUrl = newUrl;
+
+        applyTags(fullBlob, parsed.title, parsed.artist, myToken);
+        schedulePrefetch();
+      });
+    } else {
+      applyTags(fastResult.blob, parsed.title, parsed.artist, myToken);
+      schedulePrefetch();
+    }
 
   } catch(err) {
-    if (err.name === "AbortError" || fetchSignal.aborted) {
-      return;
-    }
+    if (err.name === "AbortError" || fetchSignal.aborted) return;
     console.error(err);
     if (myToken !== loadToken) return;
     $("mini-sub").textContent = "Error loading track";
