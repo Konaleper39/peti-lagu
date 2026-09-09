@@ -96,6 +96,21 @@
   .folder-row .name, .track .name { font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track.playing .name { color: #ff375f; font-weight: 600; }
   .track .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  #mini-progress {
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 0 0 14px 14px;
+  overflow: hidden;
+}
+#mini-progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #fff;
+}
 
   /* Mini Player */
   #mini-player {
@@ -359,6 +374,7 @@
     <button class="ctrl-btn" id="mini-play">
       <svg id="mini-play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
     </button>
+    <div id="mini-progress"><div id="mini-progress-fill"></div></div>
   </div>
 
   <!-- Full Player (Button-Driven) -->
@@ -492,8 +508,8 @@ let filteredTracks = [];
 
 let playQueue = [];
 let queueIndex = -1;
-let isShuffle = false;
-let loopMode = 0;
+let isShuffle = localStorage.getItem("petilagu_shuffle") === "true";
+let loopMode = parseInt(localStorage.getItem("petilagu_loop") || "0", 10);
 
 let currentPlayingId = null;
 let currentArtBlobUrl = null;
@@ -546,6 +562,8 @@ function parseArtistTitle(rawName) {
 // ====== AUTHENTICATION ======
 window.onload = () => {
   setupMediaSessionHandlers();
+  $("shuffle-btn").classList.toggle("active", isShuffle);
+  updateLoopVisuals();
 
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
@@ -886,6 +904,7 @@ function renderQueueList() {
 // ====== MODES & NAVIGATION ======
 $("shuffle-btn").addEventListener("click", () => {
   isShuffle = !isShuffle;
+  localStorage.setItem("petilagu_shuffle", isShuffle);
   $("shuffle-btn").classList.toggle("active", isShuffle);
   showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
   prepareSurroundingTracks();
@@ -893,19 +912,16 @@ $("shuffle-btn").addEventListener("click", () => {
 
 $("loop-btn").addEventListener("click", () => {
   loopMode = (loopMode + 1) % 3;
+  localStorage.setItem("petilagu_loop", loopMode.toString());
+  updateLoopVisuals();
+});
+
+function updateLoopVisuals() {
   const btn = $("loop-btn");
   const badge = $("loop-badge");
-  if (loopMode === 0) {
-    btn.classList.remove("active");
-    badge.style.display = "none";
-  } else if (loopMode === 1) {
-    btn.classList.add("active");
-    badge.style.display = "none";
-  } else if (loopMode === 2) {
-    btn.classList.add("active");
-    badge.style.display = "block";
-  }
-});
+  btn.classList.toggle("active", loopMode > 0);
+  badge.style.display = loopMode === 2 ? "block" : "none";
+}
 
 function getNextTrackIndex() {
   if (playQueue.length === 0) return -1;
@@ -1165,6 +1181,8 @@ audio.addEventListener("timeupdate", () => {
   $("time-cur").textContent = fmt(audio.currentTime);
   const rem = audio.duration - audio.currentTime;
   $("time-dur").textContent = (isFinite(rem) && rem > 0) ? `-${fmt(rem)}` : "0:00";
+  const miniFill = $("mini-progress-fill");
+  if (miniFill) miniFill.style.width = pct + "%";
 
   if ("mediaSession" in navigator && audio.duration && isFinite(audio.duration)) {
     try {
