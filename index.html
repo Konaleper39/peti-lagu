@@ -91,6 +91,7 @@
   .folder-row .name, .track .name { font-size: 15px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .track.playing .name { color: var(--accent); font-weight: 600; }
   .track .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+  
   /* Mini Player */
   #mini-player {
     position: absolute; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom));
@@ -112,6 +113,7 @@
   #mini-player .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #mini-player .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ctrl-btn { background: none; border: none; color: #fff; padding: 6px; cursor: pointer; }
+  
   /* Mini progress bar */
   #mini-progress {
     position: absolute; left: 0; right: 0; bottom: 0;
@@ -122,6 +124,7 @@
     background: var(--accent);
     transition: width 0.15s linear;
   }
+  
   /* Full Screen Player */
   #full-player {
     position: fixed; inset: 0; z-index: 100;
@@ -151,6 +154,7 @@
     width: 38px; height: 5px; background: rgba(255,255,255,0.3);
     border-radius: 3px; cursor: pointer; margin: 0 auto;
   }
+  
   /* Views */
   #view-artwork {
     flex: 1; display: flex; flex-direction: column; width: 100%; min-height: 0;
@@ -245,6 +249,7 @@
     border: none; color: #fff; display: flex; align-items: center; justify-content: center;
     cursor: pointer;
   }
+  
   /* Scrubber & Controls */
   .scrubber-wrap { margin-top: 14px; width: 100%; }
   #seek {
@@ -276,6 +281,7 @@
     cursor: pointer; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   }
   .footer-btn.active { color: #fff; background: var(--glass-pill); }
+  
   /* Context Menu */
   #action-sheet-backdrop {
     position: fixed; inset: 0; background: rgba(0,0,0,0.55);
@@ -350,6 +356,7 @@
     <p>No playable audio files found in this directory.</p>
   </div>
   <div id="list-wrap"></div>
+  
   <!-- Mini Player -->
   <div id="mini-player">
     <div class="art">
@@ -365,7 +372,8 @@
     </button>
     <div id="mini-progress"><div id="mini-progress-bar"></div></div>
   </div>
-  <!-- Full Player (Button-Driven) -->
+  
+  <!-- Full Screen Player -->
   <div id="full-player">
     <div id="ambient-backdrop"></div>
     <div id="ambient-dimmer"></div>
@@ -376,6 +384,7 @@
       <div class="grabber-bar" id="collapse-grabber" title="Close Player"></div>
       <div style="width:24px;"></div>
     </div>
+    
     <!-- View 1: Artwork -->
     <div id="view-artwork">
       <div class="art-large-wrap">
@@ -391,6 +400,7 @@
         </div>
       </div>
     </div>
+    
     <!-- View 2: Queue List -->
     <div id="view-queue">
       <div class="queue-header-track">
@@ -417,6 +427,7 @@
       </div>
       <div class="queue-list-container" id="queue-items-wrap"></div>
     </div>
+    
     <!-- Scrubber -->
     <div class="scrubber-wrap">
       <input type="range" id="seek" min="0" max="100" value="0" />
@@ -425,6 +436,7 @@
         <span id="time-dur">-0:00</span>
       </div>
     </div>
+    
     <!-- Transport Controls -->
     <div class="playback-row">
       <button class="btn-transport" id="prev-btn">
@@ -437,6 +449,7 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
       </button>
     </div>
+    
     <!-- Footer Switcher -->
     <div class="footer-row">
       <div style="width:36px;"></div>
@@ -445,6 +458,7 @@
       </button>
     </div>
   </div>
+  
   <!-- Context Action Sheet -->
   <div id="action-sheet-backdrop">
     <div id="action-sheet">
@@ -472,27 +486,37 @@ const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
 const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
 let rootFolderName = "Drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
+
 let accessToken = localStorage.getItem("petilagu_token") || null;
 let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
 let tokenClient = null;
 let authIntent = "initial";
+
 let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
 let currentFolders = [];
 let tracks = [];
 let filteredFolders = [];
 let filteredTracks = [];
+
 let playQueue = [];
 let queueIndex = -1;
 let isShuffle = localStorage.getItem("petilagu_shuffle") === "1";
 let loopMode = parseInt(localStorage.getItem("petilagu_loop") || "0", 10);
+
 let currentPlayingId = null;
 let currentArtBlobUrl = null;
 let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
+
+// Network management controllers
+let currentFetchController = null;
+let prefetchTimer = null;
+
 const blobCache = new Map();
 let selectedSheetTrack = null;
 let inQueueMode = false;
+
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
 
@@ -502,6 +526,7 @@ function showToast(msg) {
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.style.display = "none"; }, 1800);
 }
+
 function showState(name) {
   ["state-signed-out", "state-loading", "state-error", "state-empty"].forEach(id => {
     $(id).style.display = (id === name) ? "flex" : "none";
@@ -510,12 +535,14 @@ function showState(name) {
   $("search-wrap").style.display = (name === null) ? "block" : "none";
   $("breadcrumb-wrap").style.display = (name === "state-signed-out") ? "none" : "flex";
 }
+
 function stripExt(name) {
   let clean = name.replace(/\.[^/.]+$/, "");
   clean = clean.replace(/_+-_+|_+-\s*|\s*-_+/g, " - ");
   clean = clean.replace(/_/g, " ");
   return clean.replace(/\s+/g, " ").trim();
 }
+
 function parseArtistTitle(rawName) {
   const clean = stripExt(rawName);
   if (clean.includes(" - ")) {
@@ -531,7 +558,6 @@ function parseArtistTitle(rawName) {
 // ====== AUTHENTICATION ======
 window.onload = () => {
   setupMediaSessionHandlers();
-  // Restore shuffle/loop UI state
   if (isShuffle) $("shuffle-btn").classList.add("active");
   applyLoopUI();
 
@@ -548,6 +574,7 @@ window.onload = () => {
       tokenExpiresAt = Date.now() + (parseInt(resp.expires_in || 3500, 10) * 1000);
       localStorage.setItem("petilagu_token", accessToken);
       localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
+
       if (authIntent === "track" && queueIndex !== -1) {
         playQueueTrack(queueIndex);
       } else if (authIntent === "folder") {
@@ -557,6 +584,7 @@ window.onload = () => {
       }
     }
   });
+
   if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {
     onSignedIn();
   } else if (accessToken) {
@@ -564,14 +592,17 @@ window.onload = () => {
     tokenClient.requestAccessToken({ prompt: "" });
   }
 };
+
 $("signin-btn").addEventListener("click", () => {
   authIntent = "initial";
   tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
 });
+
 async function onSignedIn() {
   $("signin-btn").style.display = "none";
   $("user-chip").style.display = "flex";
   $("user-chip").innerHTML = `<span>Connected</span>`;
+
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=name`, {
       headers: { Authorization: `Bearer ${accessToken}` }
@@ -583,9 +614,11 @@ async function onSignedIn() {
   } catch (err) {
     console.error("Gagal dapatkan nama root folder:", err);
   }
+
   breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
   loadFolder(ROOT_FOLDER_ID);
 }
+
 function currentFolderId() { return breadcrumbPath[breadcrumbPath.length - 1].id; }
 
 // ====== BREADCRUMB ======
@@ -605,12 +638,14 @@ function renderBreadcrumb() {
     });
   });
 }
+
 $("back-btn").addEventListener("click", () => {
   if (breadcrumbPath.length > 1) {
     breadcrumbPath = breadcrumbPath.slice(0, -1);
     loadFolder(currentFolderId());
   }
 });
+
 function enterFolder(id, name) {
   breadcrumbPath = [...breadcrumbPath, { id, name }];
   loadFolder(id);
@@ -632,6 +667,7 @@ async function loadFolder(folderId) {
       url.searchParams.set("pageSize", "1000");
       url.searchParams.set("spaces", "drive");
       if (pageToken) url.searchParams.set("pageToken", pageToken);
+
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (res.status === 401) {
         authIntent = "folder";
@@ -646,8 +682,10 @@ async function loadFolder(folderId) {
       }
       pageToken = data.nextPageToken;
     } while (pageToken);
+
     currentFolders.sort((a,b) => a.name.localeCompare(b.name, "en"));
     tracks.sort((a,b) => a.name.localeCompare(b.name, "en"));
+
     if (currentFolders.length === 0 && tracks.length === 0) {
       showState("state-empty");
       return;
@@ -662,6 +700,7 @@ async function loadFolder(folderId) {
     $("error-msg").textContent = "Could not fetch Drive content.";
   }
 }
+
 function renderList() {
   const wrap = $("list-wrap");
   const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;
@@ -692,12 +731,15 @@ function renderList() {
     }).join("");
   }
   wrap.innerHTML = html;
+
   wrap.querySelectorAll(".folder-row").forEach(el => {
     el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));
   });
+
   wrap.querySelectorAll(".track").forEach(el => {
     let pressTimer = null;
     let isLongPress = false;
+
     const startPress = () => {
       isLongPress = false;
       pressTimer = setTimeout(() => {
@@ -708,7 +750,9 @@ function renderList() {
         if (selectedTrack) openActionSheet(selectedTrack);
       }, 500);
     };
+
     const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+
     el.addEventListener("touchstart", startPress, { passive: true });
     el.addEventListener("touchend", (e) => {
       cancelPress();
@@ -723,6 +767,7 @@ function renderList() {
       }
     });
     el.addEventListener("touchmove", cancelPress);
+
     el.addEventListener("mousedown", startPress);
     el.addEventListener("mouseup", () => {
       cancelPress();
@@ -738,9 +783,11 @@ function renderList() {
     });
   });
 }
+
 function escapeHtml(s) {
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
 $("search-input").addEventListener("input", (e) => {
   const q = e.target.value.trim().toLowerCase();
   filteredFolders = q ? currentFolders.filter(f => f.name.toLowerCase().includes(q)) : currentFolders;
@@ -756,11 +803,13 @@ function openActionSheet(track) {
   $("sheet-song-sub").textContent = parsed.artist;
   $("action-sheet-backdrop").style.display = "flex";
 }
+
 $("action-sheet-backdrop").addEventListener("click", (e) => {
   if (e.target === $("action-sheet-backdrop")) {
     $("action-sheet-backdrop").style.display = "none";
   }
 });
+
 $("sheet-play-next").addEventListener("click", () => {
   if (!selectedSheetTrack) return;
   if (playQueue.length === 0) {
@@ -771,10 +820,11 @@ $("sheet-play-next").addEventListener("click", () => {
     playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);
     showToast(`Will Play Next`);
     renderQueueList();
-    prepareSurroundingTracks();
+    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
+
 $("sheet-add-queue").addEventListener("click", () => {
   if (!selectedSheetTrack) return;
   if (playQueue.length === 0) {
@@ -785,7 +835,7 @@ $("sheet-add-queue").addEventListener("click", () => {
     playQueue.push(selectedSheetTrack);
     showToast(`Added to Queue`);
     renderQueueList();
-    prepareSurroundingTracks();
+    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
@@ -798,9 +848,11 @@ function setQueueMode(showQueue) {
   $("toggle-queue-btn").classList.toggle("active", showQueue);
   if (showQueue) renderQueueList();
 }
+
 $("toggle-queue-btn").addEventListener("click", () => {
   setQueueMode(!inQueueMode);
 });
+
 $("btn-back-home").addEventListener("click", () => {
   $("full-player").style.display = "none";
 });
@@ -812,7 +864,6 @@ function renderQueueList() {
   const container = $("queue-items-wrap");
   const upNext = playQueue.slice(queueIndex + 1);
 
-  // Show current track + up next
   let html = "";
   if (queueIndex >= 0 && playQueue[queueIndex]) {
     const cur = playQueue[queueIndex];
@@ -858,7 +909,7 @@ function renderQueueList() {
       const subIdx = parseInt(btn.dataset.subidx);
       playQueue.splice(queueIndex + 1 + subIdx, 1);
       renderQueueList();
-      prepareSurroundingTracks();
+      schedulePrefetch();
     });
   });
 }
@@ -869,10 +920,9 @@ $("clear-queue-btn").addEventListener("click", () => {
     showToast("Queue already empty");
     return;
   }
-  // Keep only the current track
   playQueue = playQueue.slice(0, queueIndex + 1);
   renderQueueList();
-  prepareSurroundingTracks();
+  schedulePrefetch();
   showToast("Queue cleared");
 });
 
@@ -897,8 +947,9 @@ $("shuffle-btn").addEventListener("click", () => {
   $("shuffle-btn").classList.toggle("active", isShuffle);
   localStorage.setItem("petilagu_shuffle", isShuffle ? "1" : "0");
   showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
-  prepareSurroundingTracks();
+  schedulePrefetch();
 });
+
 $("loop-btn").addEventListener("click", () => {
   loopMode = (loopMode + 1) % 3;
   localStorage.setItem("petilagu_loop", loopMode.toString());
@@ -918,6 +969,7 @@ function getNextTrackIndex() {
   if (loopMode === 1) return 0;
   return -1;
 }
+
 function getPrevTrackIndex() {
   if (playQueue.length === 0) return -1;
   if (loopMode === 2) return queueIndex;
@@ -938,6 +990,7 @@ function updateMediaSession(title, artist, artworkUrl) {
     ] : []
   });
 }
+
 function setupMediaSessionHandlers() {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.setActionHandler("previoustrack", () => playPrev());
@@ -954,12 +1007,13 @@ function setupMediaSessionHandlers() {
   } catch(e) {}
 }
 
-// ====== CACHE & PLAYBACK ======
-async function fetchTrackBlob(trackId) {
+// ====== CACHE & PLAYBACK (WITH ABORTCONTROLLER & SAFARI OPTIMIZATION) ======
+async function fetchTrackBlob(trackId, signal = null) {
   if (blobCache.has(trackId)) return blobCache.get(trackId);
   try {
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${accessToken}` },
+      signal: signal
     });
     if (!res.ok) return null;
     const blob = await res.blob();
@@ -973,6 +1027,14 @@ async function fetchTrackBlob(trackId) {
     return null;
   }
 }
+
+function schedulePrefetch() {
+  clearTimeout(prefetchTimer);
+  prefetchTimer = setTimeout(() => {
+    prepareSurroundingTracks();
+  }, 3500); // 3.5s jeda agar pembiayaan data lagu semasa siap sepenuhnya
+}
+
 function prepareSurroundingTracks() {
   const nextIdx = getNextTrackIndex();
   if (nextIdx !== -1 && playQueue[nextIdx]) {
@@ -983,39 +1045,65 @@ function prepareSurroundingTracks() {
     fetchTrackBlob(playQueue[prevIdx].id);
   }
 }
+
 async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
+
+  // Batalkan muat turun sebelumnya secara serta-merta
+  if (currentFetchController) {
+    currentFetchController.abort();
+  }
+  currentFetchController = new AbortController();
+  const fetchSignal = currentFetchController.signal;
+
+  clearTimeout(prefetchTimer);
+
   queueIndex = idx;
   const track = playQueue[idx];
   currentPlayingId = track.id;
   const parsed = parseArtistTitle(track.name);
   const myToken = ++loadToken;
+
+  // Bebaskan audio sedia ada serta-merta
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.load();
+
   $("mini-player").style.display = "flex";
   resetFields(parsed.title, parsed.artist);
   setupMediaSessionHandlers();
   updateMediaSession(parsed.title, parsed.artist, null);
   if (inQueueMode) renderQueueList();
   renderList();
+
   try {
-    let blob = await fetchTrackBlob(track.id);
+    let blob = await fetchTrackBlob(track.id, fetchSignal);
+    if (fetchSignal.aborted || myToken !== loadToken) return;
     if (!blob) throw new Error("Fetch failed");
-    if (myToken !== loadToken) return;
+
     if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
     currentAudioBlobUrl = URL.createObjectURL(blob);
     audio.src = currentAudioBlobUrl;
+
     await audio.play();
-    if (myToken !== loadToken) return;
+    if (fetchSignal.aborted || myToken !== loadToken) return;
+
     isPlaying = true;
     updatePlayVisuals();
     applyTags(blob, parsed.title, parsed.artist, myToken);
-    prepareSurroundingTracks();
+    schedulePrefetch();
+
   } catch(err) {
+    if (err.name === "AbortError" || fetchSignal.aborted) {
+      return;
+    }
     console.error(err);
     if (myToken !== loadToken) return;
     $("mini-sub").textContent = "Error loading track";
     $("full-artist").textContent = "Playback error";
   }
 }
+
 function resetFields(title, artist) {
   $("mini-name").textContent = title;
   $("mini-sub").textContent = artist;
@@ -1026,11 +1114,13 @@ function resetFields(title, artist) {
   setArtwork(null);
   $("mini-progress-bar").style.width = "0%";
 }
+
 function setArtwork(url) {
   const mImg = $("mini-art-img"), mFb = $("mini-fallback");
   const lImg = $("large-art-img"), lFb = $("large-fallback");
   const qImg = $("queue-mini-art");
   const bg = $("ambient-backdrop");
+
   if (url) {
     mImg.src = url; mImg.style.display = "block"; mFb.style.display = "none";
     lImg.src = url; lImg.style.display = "block"; lFb.style.display = "none";
@@ -1043,6 +1133,7 @@ function setArtwork(url) {
     bg.style.backgroundImage = "none";
   }
 }
+
 function readTagsBlob(blob) {
   return new Promise(resolve => {
     if (typeof jsmediatags === "undefined") return resolve(null);
@@ -1052,17 +1143,21 @@ function readTagsBlob(blob) {
     });
   });
 }
+
 async function applyTags(blob, fallbackTitle, fallbackArtist, myToken) {
   const tags = await readTagsBlob(blob);
   if (myToken !== loadToken) return;
+
   const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackTitle;
   const artist = (tags && tags.artist && tags.artist.trim()) ? tags.artist.trim() : fallbackArtist;
+
   $("mini-name").textContent = title;
   $("mini-sub").textContent = artist;
   $("full-name").textContent = title;
   $("full-artist").textContent = artist;
   $("queue-cur-name").textContent = title;
   $("queue-cur-artist").textContent = artist;
+
   let artUrl = null;
   if (tags && tags.picture) {
     try {
@@ -1076,40 +1171,49 @@ async function applyTags(blob, fallbackTitle, fallbackArtist, myToken) {
   } else {
     setArtwork(null);
   }
+
   updateMediaSession(title, artist, artUrl);
 }
+
 function togglePlay() {
   if (queueIndex === -1) return;
   if (isPlaying) { audio.pause(); isPlaying = false; }
   else { audio.play(); isPlaying = true; }
   updatePlayVisuals();
 }
+
 function updatePlayVisuals() {
   const icon = isPlaying
     ? '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>'
     : '<path d="M8 5v14l11-7z"/>';
   $("mini-play-icon").innerHTML = icon;
   $("big-play-icon").innerHTML = icon;
+
   const box = $("art-large-box");
   if (isPlaying) box.classList.remove("paused");
   else box.classList.add("paused");
+
   renderList();
   if ("mediaSession" in navigator) {
     navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
   }
 }
+
 function playNext() {
   const next = getNextTrackIndex();
   if (next !== -1) playQueueTrack(next);
 }
+
 function playPrev() {
   const prev = getPrevTrackIndex();
   if (prev !== -1) playQueueTrack(prev);
 }
+
 $("mini-play").addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
 $("play-big").addEventListener("click", togglePlay);
 $("next-btn").addEventListener("click", playNext);
 $("prev-btn").addEventListener("click", playPrev);
+
 audio.addEventListener("ended", () => {
   if (loopMode === 2) {
     audio.currentTime = 0;
@@ -1118,23 +1222,26 @@ audio.addEventListener("ended", () => {
     playNext();
   }
 });
+
 $("mini-player").addEventListener("click", () => {
   setQueueMode(false);
   $("full-player").style.display = "flex";
 });
+
 function fmt(s) {
   if (!isFinite(s)) return "0:00";
   const m = Math.floor(s/60), sec = Math.floor(s%60);
   return `${m}:${sec.toString().padStart(2,'0')}`;
 }
+
 audio.addEventListener("timeupdate", () => {
   const pct = audio.duration ? (audio.currentTime / audio.duration) * 100 : 0;
   if (!seeking) $("seek").value = pct;
   $("time-cur").textContent = fmt(audio.currentTime);
   const rem = audio.duration - audio.currentTime;
   $("time-dur").textContent = (isFinite(rem) && rem > 0) ? `-${fmt(rem)}` : "0:00";
-  // Mini progress bar
   $("mini-progress-bar").style.width = pct + "%";
+
   if ("mediaSession" in navigator && audio.duration && isFinite(audio.duration)) {
     try {
       navigator.mediaSession.setPositionState({
@@ -1145,6 +1252,7 @@ audio.addEventListener("timeupdate", () => {
     } catch(e) {}
   }
 });
+
 let seeking = false;
 $("seek").addEventListener("input", () => { seeking = true; });
 $("seek").addEventListener("change", () => {
