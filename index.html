@@ -84,12 +84,24 @@
   }
   .state-panel h2 { color: #fff; font-size: 18px; margin: 0; font-weight: 600; }
   .state-panel p { font-size: 13px; margin: 0; line-height: 1.4; max-width: 280px; }
+  .retry-btn {
+    margin-top: 4px;
+    background: var(--glass-pill);
+    border: none;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+  }
 
   #list-wrap { flex: 1; overflow-y: auto; padding: 8px 12px 140px; display: none; -webkit-overflow-scrolling: touch; }
   .section-label { font-size: 11px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.8px; padding: 12px 10px 4px; }
   .folder-row, .track {
     display: flex; align-items: center; gap: 12px; padding: 12px;
     border-radius: 10px; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .folder-row:active, .track:active { background: var(--glass); }
   .ficon { width: 24px; color: var(--text-sub); display: flex; align-items: center; }
@@ -354,6 +366,7 @@
   <div class="state-panel" id="state-error" style="display:none;">
     <h2>Connection Issue</h2>
     <p id="error-msg">Unable to connect to Google Drive.</p>
+    <button class="retry-btn" id="retry-btn">Try Again</button>
   </div>
 
   <div class="state-panel" id="state-empty" style="display:none;">
@@ -497,10 +510,12 @@ const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
 let rootFolderName = "Drive";
 const FOLDER_MIME = "application/vnd.google-apps.folder";
 
-let accessToken = localStorage.getItem("petilagu_token") || null;
-let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
+// Access token lives in memory ONLY — never persisted (localStorage/sessionStorage),
+// so it can't be read back by other scripts or survive a tab close.
+let accessToken = null;
 let tokenClient = null;
-let authIntent = "initial";
+let authIntent = "initial"; // "initial" | "folder" | "track" — what to resume after a token refresh
+let tokenRetryDone = false; // guards against infinite refresh loops on repeated stream errors
 
 let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
 let currentFolders = [];
@@ -515,14 +530,9 @@ let loopMode = parseInt(localStorage.getItem("petilagu_loop") || "0", 10);
 
 let currentPlayingId = null;
 let currentArtBlobUrl = null;
-let currentAudioBlobUrl = null;
 let isPlaying = false;
-let loadToken = 0;
+let loadToken = 0; // guards against stale async results when switching tracks fast
 
-let currentFetchController = null;
-let prefetchTimer = null;
-
-const blobCache = new Map();
 let selectedSheetTrack = null;
 let inQueueMode = false;
 
@@ -565,6 +575,10 @@ function parseArtistTitle(rawName) {
 }
 
 // ====== AUTHENTICATION ======
+// Note: sign-in only ever runs from a direct button tap (a user gesture). We don't
+// attempt any automatic/silent token request on page load — iOS Safari (especially
+// as a home-screen web app) is unreliable with OAuth calls that aren't tied to a
+// tap, so this keeps the flow predictable.
 window.onload = () => {
   setupMediaSessionHandlers();
   $("shuffle-btn").classList.toggle("active", isShuffle);
@@ -575,14 +589,17 @@ window.onload = () => {
     scope: SCOPES,
     callback: (resp) => {
       if (resp.error) {
-        showState("state-error");
-        $("error-msg").textContent = "Sign in failed. Please try again.";
+        if (authIntent === "track") {
+          $("mini-sub").textContent = "Session expired";
+          $("full-artist").textContent = "Session expired — reopen the app";
+        } else {
+          showState("state-error");
+          $("error-msg").textContent = "Sign in failed. Please try again.";
+        }
         return;
       }
       accessToken = resp.access_token;
-      tokenExpiresAt = Date.now() + (parseInt(resp.expires_in || 3500, 10) * 1000);
-      localStorage.setItem("petilagu_token", accessToken);
-      localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
+      tokenRetryDone = false;
 
       if (authIntent === "track" && queueIndex !== -1) {
         playQueueTrack(queueIndex);
@@ -593,18 +610,21 @@ window.onload = () => {
       }
     }
   });
-
-  if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {
-    onSignedIn();
-  } else if (accessToken) {
-    authIntent = "initial";
-    tokenClient.requestAccessToken({ prompt: "" });
-  }
 };
 
 $("signin-btn").addEventListener("click", () => {
   authIntent = "initial";
   tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+});
+
+$("retry-btn").addEventListener("click", () => {
+  if (accessToken) {
+    authIntent = "folder";
+    loadFolder(currentFolderId());
+  } else {
+    authIntent = "initial";
+    tokenClient.requestAccessToken({ prompt: "consent" });
+  }
 });
 
 async function onSignedIn() {
@@ -621,7 +641,7 @@ async function onSignedIn() {
       if (data.name) rootFolderName = data.name;
     }
   } catch (err) {
-    console.error("Gagal dapatkan nama root folder:", err);
+    console.error("Could not fetch root folder name:", err);
   }
 
   breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
@@ -680,6 +700,7 @@ async function loadFolder(folderId) {
       const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       if (res.status === 401) {
         authIntent = "folder";
+        accessToken = null;
         tokenClient.requestAccessToken({ prompt: "" });
         return;
       }
@@ -745,51 +766,55 @@ function renderList() {
     el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));
   });
 
-  wrap.querySelectorAll(".track").forEach(el => {
-    let pressTimer = null;
-    let isLongPress = false;
+  wrap.querySelectorAll(".track").forEach(el => attachPressHandlers(el, el.dataset.id));
+}
 
-    const startPress = () => {
-      isLongPress = false;
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        if (navigator.vibrate) navigator.vibrate(50);
-        const trackId = el.dataset.id;
-        const selectedTrack = tracks.find(t => t.id === trackId);
-        if (selectedTrack) openActionSheet(selectedTrack);
-      }, 500);
-    };
+// Unified tap + long-press handling via Pointer Events, so touch and mouse never
+// both fire the action (the old touchend+mouseup combo could double-trigger
+// playback on iOS Safari).
+function attachPressHandlers(el, trackId) {
+  let pressTimer = null;
+  let longPressFired = false;
+  let startX = 0, startY = 0;
+  const MOVE_THRESHOLD = 10;
 
-    const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+  const clearPress = () => {
+    if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+  };
 
-    el.addEventListener("touchstart", startPress, { passive: true });
-    el.addEventListener("touchend", (e) => {
-      cancelPress();
-      if (!isLongPress && e.cancelable) {
-        const trackId = el.dataset.id;
-        const trackIndex = tracks.findIndex(t => t.id === trackId);
-        if (trackIndex > -1) {
-          playQueue = tracks.slice();
-          queueIndex = trackIndex;
-          playQueueTrack(queueIndex);
-        }
-      }
-    });
-    el.addEventListener("touchmove", cancelPress);
+  el.addEventListener("pointerdown", (e) => {
+    longPressFired = false;
+    startX = e.clientX; startY = e.clientY;
+    pressTimer = setTimeout(() => {
+      longPressFired = true;
+      clearPress();
+      if (navigator.vibrate) navigator.vibrate(50);
+      const t = tracks.find(x => x.id === trackId);
+      if (t) openActionSheet(t);
+    }, 500);
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (Math.abs(e.clientX - startX) > MOVE_THRESHOLD || Math.abs(e.clientY - startY) > MOVE_THRESHOLD) {
+      clearPress();
+    }
+  });
+  el.addEventListener("pointerup", clearPress);
+  el.addEventListener("pointercancel", clearPress);
+  el.addEventListener("pointerleave", clearPress);
 
-    el.addEventListener("mousedown", startPress);
-    el.addEventListener("mouseup", () => {
-      cancelPress();
-      if (!isLongPress) {
-        const trackId = el.dataset.id;
-        const trackIndex = tracks.findIndex(t => t.id === trackId);
-        if (trackIndex > -1) {
-          playQueue = tracks.slice();
-          queueIndex = trackIndex;
-          playQueueTrack(queueIndex);
-        }
-      }
-    });
+  el.addEventListener("click", (e) => {
+    if (longPressFired) {
+      e.preventDefault();
+      e.stopPropagation();
+      longPressFired = false;
+      return;
+    }
+    const trackIndex = tracks.findIndex(t => t.id === trackId);
+    if (trackIndex > -1) {
+      playQueue = tracks.slice();
+      queueIndex = trackIndex;
+      playQueueTrack(queueIndex);
+    }
   });
 }
 
@@ -829,7 +854,6 @@ $("sheet-play-next").addEventListener("click", () => {
     playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);
     showToast(`Will Play Next`);
     renderQueueList();
-    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
@@ -844,12 +868,11 @@ $("sheet-add-queue").addEventListener("click", () => {
     playQueue.push(selectedSheetTrack);
     showToast(`Added to Queue`);
     renderQueueList();
-    schedulePrefetch();
   }
   $("action-sheet-backdrop").style.display = "none";
 });
 
-// ====== BUTTON NAVIGATION (VIEW QUEUE & CLOSE PLAYER) ======
+// ====== VIEW SWITCHING (QUEUE & CLOSE PLAYER) ======
 function setQueueMode(showQueue) {
   inQueueMode = showQueue;
   $("view-artwork").style.display = showQueue ? "none" : "flex";
@@ -899,7 +922,6 @@ function renderQueueList() {
       const subIdx = parseInt(btn.dataset.subidx);
       playQueue.splice(queueIndex + 1 + subIdx, 1);
       renderQueueList();
-      schedulePrefetch();
     });
   });
 }
@@ -910,7 +932,6 @@ $("shuffle-btn").addEventListener("click", () => {
   localStorage.setItem("petilagu_shuffle", isShuffle);
   $("shuffle-btn").classList.toggle("active", isShuffle);
   showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
-  schedulePrefetch();
 });
 
 $("loop-btn").addEventListener("click", () => {
@@ -961,6 +982,7 @@ function updateMediaSession(title, artist, artworkUrl) {
   });
 }
 
+// Registered once — no need to re-attach these on every track change.
 function setupMediaSessionHandlers() {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.setActionHandler("previoustrack", () => playPrev());
@@ -977,56 +999,17 @@ function setupMediaSessionHandlers() {
   } catch(e) {}
 }
 
-// ====== CACHE & PLAYBACK (OPTIMIZED FOR SAFARI / IOS) ======
-async function fetchTrackBlob(trackId, signal = null) {
-  if (blobCache.has(trackId)) return blobCache.get(trackId);
-  try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-      signal: signal
-    });
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    blobCache.set(trackId, blob);
-    if (blobCache.size > 4) {
-      const oldestKey = blobCache.keys().next().value;
-      blobCache.delete(oldestKey);
-    }
-    return blob;
-  } catch(e) {
-    return null;
-  }
+// ====== DRIVE STREAMING URL ======
+// The Drive media endpoint accepts the access token as a query param, so <audio>
+// and jsmediatags can stream straight from it with native HTTP range requests —
+// no full-file download before playback starts.
+function driveMediaUrl(fileId) {
+  return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&access_token=${encodeURIComponent(accessToken)}`;
 }
 
-function schedulePrefetch() {
-  clearTimeout(prefetchTimer);
-  prefetchTimer = setTimeout(() => {
-    prepareSurroundingTracks();
-  }, 3500); // Beri ruang 3.5s untuk lagu semasa dimainkan lancar sebelum fetch track lain
-}
-
-function prepareSurroundingTracks() {
-  const nextIdx = getNextTrackIndex();
-  if (nextIdx !== -1 && playQueue[nextIdx]) {
-    fetchTrackBlob(playQueue[nextIdx].id);
-  }
-  const prevIdx = getPrevTrackIndex();
-  if (prevIdx !== -1 && playQueue[prevIdx]) {
-    fetchTrackBlob(playQueue[prevIdx].id);
-  }
-}
-
+// ====== PLAYBACK ======
 async function playQueueTrack(idx) {
   if (idx < 0 || idx >= playQueue.length) return;
-
-  // Batalkan muat turun sebelumnya jika masih berjalan
-  if (currentFetchController) {
-    currentFetchController.abort();
-  }
-  currentFetchController = new AbortController();
-  const fetchSignal = currentFetchController.signal;
-
-  clearTimeout(prefetchTimer);
 
   queueIndex = idx;
   const track = playQueue[idx];
@@ -1034,45 +1017,42 @@ async function playQueueTrack(idx) {
   const parsed = parseArtistTitle(track.name);
   const myToken = ++loadToken;
 
-  // Hentikan sebarang audio yang sedang dimainkan
-  audio.pause();
-  audio.removeAttribute("src");
-  audio.load();
-
   $("mini-player").style.display = "flex";
   resetFields(parsed.title, parsed.artist);
-  setupMediaSessionHandlers();
-  updateMediaSession(parsed.title, parsed.artist, null);
+  updateMediaSession(parsed.title, parsed.artist, null); // show something on lockscreen immediately
   if (inQueueMode) renderQueueList();
   renderList();
 
+  const url = driveMediaUrl(track.id);
+  audio.src = url;
+
   try {
-    let blob = await fetchTrackBlob(track.id, fetchSignal);
-    if (fetchSignal.aborted || myToken !== loadToken) return;
-    if (!blob) throw new Error("Fetch failed");
-
-    if (currentAudioBlobUrl) URL.revokeObjectURL(currentAudioBlobUrl);
-    currentAudioBlobUrl = URL.createObjectURL(blob);
-    audio.src = currentAudioBlobUrl;
-
-    await audio.play();
-    if (fetchSignal.aborted || myToken !== loadToken) return;
-
+    await audio.play(); // starts streaming right away — doesn't wait on tags or a full download
+    if (myToken !== loadToken) return;
     isPlaying = true;
     updatePlayVisuals();
-    applyTags(blob, parsed.title, parsed.artist, myToken);
-    schedulePrefetch();
-
   } catch(err) {
-    if (err.name === "AbortError" || fetchSignal.aborted) {
-      return;
-    }
     console.error(err);
     if (myToken !== loadToken) return;
     $("mini-sub").textContent = "Error loading track";
     $("full-artist").textContent = "Playback error";
+    return;
   }
+
+  // Tag + artwork extraction happens in the background and never blocks playback.
+  applyTagsFromUrl(url, parsed.title, parsed.artist, myToken);
 }
+
+// If the stream errors mid-play (e.g. the access token expired), try one silent
+// token refresh and resume the same track automatically.
+audio.addEventListener("error", () => {
+  if (currentPlayingId && !tokenRetryDone) {
+    tokenRetryDone = true;
+    authIntent = "track";
+    accessToken = null;
+    tokenClient.requestAccessToken({ prompt: "" });
+  }
+});
 
 function resetFields(title, artist) {
   $("mini-name").textContent = title;
@@ -1103,19 +1083,22 @@ function setArtwork(url) {
   }
 }
 
-function readTagsBlob(blob) {
+// Reads ID3/M4A tags straight from the streaming URL — jsmediatags does its own
+// small range requests for the tag header/footer, so this never needs (or waits
+// for) the full audio file.
+function readTagsFromUrl(url) {
   return new Promise(resolve => {
     if (typeof jsmediatags === "undefined") return resolve(null);
-    jsmediatags.read(blob, {
+    jsmediatags.read(url, {
       onSuccess: tag => resolve(tag.tags || null),
       onError: () => resolve(null)
     });
   });
 }
 
-async function applyTags(blob, fallbackTitle, fallbackArtist, myToken) {
-  const tags = await readTagsBlob(blob);
-  if (myToken !== loadToken) return;
+async function applyTagsFromUrl(url, fallbackTitle, fallbackArtist, myToken) {
+  const tags = await readTagsFromUrl(url);
+  if (myToken !== loadToken) return; // a newer track started meanwhile — discard
 
   const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackTitle;
   const artist = (tags && tags.artist && tags.artist.trim()) ? tags.artist.trim() : fallbackArtist;
