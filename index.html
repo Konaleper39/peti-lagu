@@ -95,7 +95,7 @@
   /* Mini Player */
   #mini-player {
     position: absolute; left: 12px; right: 12px; bottom: max(16px, env(safe-area-inset-bottom));
-    background: rgba(30, 30, 34, 0.78);
+    background: rgba(30, 30, 34, 0.85);
     backdrop-filter: blur(28px) saturate(190%);
     -webkit-backdrop-filter: blur(28px) saturate(190%);
     border: 1px solid rgba(255,255,255,0.12);
@@ -112,7 +112,7 @@
   #mini-player .info { flex: 1; min-width: 0; }
   #mini-player .name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #mini-player .sub { font-size: 12px; color: var(--text-sub); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ctrl-btn { background: none; border: none; color: #fff; padding: 6px; cursor: pointer; }
+  .ctrl-btn { background: none; border: none; color: #fff; padding: 6px; cursor: pointer; display: flex; align-items: center; }
 
   /* Mini progress bar */
   #mini-progress {
@@ -140,7 +140,7 @@
     transform: scale(1.15); z-index: -1; transition: background-image 0.6s ease;
   }
   #ambient-dimmer {
-    position: absolute; inset: 0; background: rgba(0, 0, 0, 0.35); z-index: -1;
+    position: absolute; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: -1;
   }
   .top-bar-controls {
     display: flex; justify-content: space-between; align-items: center;
@@ -193,7 +193,7 @@
   }
   .queue-header-art {
     width: 50px; height: 50px; border-radius: 8px; overflow: hidden;
-    background: #26262a; flex-shrink: 0;
+    background: #26262a; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   }
   .queue-header-art img { width: 100%; height: 100%; object-fit: cover; }
   .queue-header-info { flex: 1; min-width: 0; }
@@ -258,10 +258,10 @@
     background: rgba(255,255,255,0.22); outline: none; cursor: pointer;
   }
   #seek::-webkit-slider-thumb {
-    -webkit-appearance: none; width: 8px; height: 8px; border-radius: 50%;
+    -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%;
     background: #fff; transition: transform 0.15s ease;
   }
-  #seek:active::-webkit-slider-thumb { transform: scale(2.2); }
+  #seek:active::-webkit-slider-thumb { transform: scale(2.0); }
   .time-stamps {
     display: flex; justify-content: space-between; font-size: 11px;
     color: var(--text-sub); font-variant-numeric: tabular-nums; margin-top: 6px;
@@ -270,7 +270,7 @@
     display: flex; align-items: center; justify-content: center; gap: 46px;
     margin: 18px 0 16px;
   }
-  .btn-transport { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; }
+  .btn-transport { background: none; border: none; color: #fff; cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; }
   .btn-transport svg { width: 34px; height: 34px; }
   .btn-transport.play-main svg { width: 50px; height: 50px; }
   .footer-row {
@@ -479,7 +479,8 @@
   </div>
   <div id="toast"></div>
 </div>
-<audio id="audio-el" preload="auto"></audio>
+<audio id="audio-el" preload="auto" playsinline webkit-playsinline></audio>
+
 <script>
 // ====== CONFIGURATION ======
 const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";
@@ -509,17 +510,26 @@ let currentArtBlobUrl = null;
 let currentAudioBlobUrl = null;
 let isPlaying = false;
 let loadToken = 0;
+let isSeeking = false;
 
 // Network management controllers
 let currentFetchController = null;
 let prefetchTimer = null;
-
 const blobCache = new Map();
+const MAX_BLOB_CACHE = 3;
+const prefetchControllers = new Map();
+const prefetchPromises = new Map();
+let prefetchQueue = [];
+let prefetchWorkerRunning = false;
+
 let selectedSheetTrack = null;
 let inQueueMode = false;
 
 const $ = (id) => document.getElementById(id);
 const audio = $("audio-el");
+
+const PLAY_ICON = `<path d="M8 5v14l11-7z"/>`;
+const PAUSE_ICON = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
 
 function showToast(msg) {
   const t = $("toast");
@@ -556,8 +566,15 @@ function parseArtistTitle(rawName) {
   return { artist: "Unknown Artist", title: clean };
 }
 
+function formatTime(sec) {
+  if (!sec || isNaN(sec) || sec < 0) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s < 10 ? "0" : ""}${s}`;
+}
+
 // ====== AUTHENTICATION ======
-window.onload = () => {
+window.addEventListener("load", () => {
   setupMediaSessionHandlers();
   if (isShuffle) $("shuffle-btn").classList.add("active");
   applyLoopUI();
@@ -592,7 +609,7 @@ window.onload = () => {
     authIntent = "initial";
     tokenClient.requestAccessToken({ prompt: "" });
   }
-};
+});
 
 $("signin-btn").addEventListener("click", () => {
   authIntent = "initial";
@@ -613,7 +630,7 @@ async function onSignedIn() {
       if (data.name) rootFolderName = data.name;
     }
   } catch (err) {
-    console.error("Gagal dapatkan nama root folder:", err);
+    console.error("Failed to get root folder name:", err);
   }
 
   breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
@@ -631,7 +648,7 @@ function renderBreadcrumb() {
   }).join(" ");
   $("crumbs").querySelectorAll(".crumb").forEach(el => {
     el.addEventListener("click", () => {
-      const i = parseInt(el.dataset.i);
+      const i = parseInt(el.dataset.i, 10);
       if (i < breadcrumbPath.length - 1) {
         breadcrumbPath = breadcrumbPath.slice(0, i + 1);
         loadFolder(currentFolderId());
@@ -841,7 +858,7 @@ $("sheet-add-queue").addEventListener("click", () => {
   $("action-sheet-backdrop").style.display = "none";
 });
 
-// ====== BUTTON NAVIGATION (VIEW QUEUE & CLOSE PLAYER) ======
+// ====== UI VIEW SWITCHERS ======
 function setQueueMode(showQueue) {
   inQueueMode = showQueue;
   $("view-artwork").style.display = showQueue ? "none" : "flex";
@@ -859,6 +876,12 @@ $("btn-back-home").addEventListener("click", () => {
 });
 $("collapse-grabber").addEventListener("click", () => {
   $("full-player").style.display = "none";
+});
+
+// Open Full Player when clicking mini player (kecuali click butang play)
+$("mini-player").addEventListener("click", (e) => {
+  if (e.target.closest("#mini-play")) return;
+  $("full-player").style.display = "flex";
 });
 
 function renderQueueList() {
@@ -907,7 +930,7 @@ function renderQueueList() {
   container.querySelectorAll(".del-btn").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const subIdx = parseInt(btn.dataset.subidx);
+      const subIdx = parseInt(btn.dataset.subidx, 10);
       playQueue.splice(queueIndex + 1 + subIdx, 1);
       renderQueueList();
       schedulePrefetch();
@@ -915,7 +938,7 @@ function renderQueueList() {
   });
 }
 
-// Clear Queue button
+// Clear Queue
 $("clear-queue-btn").addEventListener("click", () => {
   if (playQueue.length <= 1) {
     showToast("Queue already empty");
@@ -979,7 +1002,7 @@ function getPrevTrackIndex() {
   return 0;
 }
 
-// ====== MEDIA SESSION INTEGRATION ======
+// ====== MEDIA SESSION INTEGRATION (iOS Safari Lockscreen) ======
 function updateMediaSession(title, artist, artworkUrl) {
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -997,42 +1020,29 @@ function setupMediaSessionHandlers() {
   navigator.mediaSession.setActionHandler("previoustrack", () => playPrev());
   navigator.mediaSession.setActionHandler("nexttrack", () => playNext());
   navigator.mediaSession.setActionHandler("play", () => {
-    audio.play(); isPlaying = true; updatePlayVisuals();
+    audio.play().catch(console.warn);
   });
   navigator.mediaSession.setActionHandler("pause", () => {
-    audio.pause(); isPlaying = false; updatePlayVisuals();
+    audio.pause();
   });
   try {
-    navigator.mediaSession.setActionHandler("seekforward", null);
-    navigator.mediaSession.setActionHandler("seekbackward", null);
+    navigator.mediaSession.setActionHandler("seekto", (details) => {
+      if (details.seekTime && !isNaN(details.seekTime)) {
+        audio.currentTime = details.seekTime;
+      }
+    });
   } catch(e) {}
 }
 
 // ====== OPTIMIZED PLAYBACK ENGINE ======
-// Prinsip utama:
-// 1. Playback sentiasa guna FULL Blob -> tiada Range chunk dimainkan dahulu.
-// 2. Audio source hanya ditukar SEBELUM playback bermula -> tiada source swap/re-decode.
-// 3. Next track diberi keutamaan untuk prefetch; previous menyusul.
-// 4. Hanya SATU prefetch network request berjalan pada satu masa.
-// 5. Cache kecil: current + next + previous (maksimum 3 Blob).
-// 6. Skip membatalkan foreground load sahaja; prefetch yang relevan tidak diganggu.
-
-const MAX_BLOB_CACHE = 3;
-const prefetchControllers = new Map();
-const prefetchPromises = new Map();
-let prefetchQueue = [];
-let prefetchWorkerRunning = false;
-
 function driveMediaUrl(trackId) {
   return `https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`;
 }
 
 function cacheTrack(trackId, blob) {
   if (!blob) return;
-
   if (blobCache.has(trackId)) blobCache.delete(trackId);
   blobCache.set(trackId, blob);
-
   while (blobCache.size > MAX_BLOB_CACHE) {
     const oldestKey = blobCache.keys().next().value;
     blobCache.delete(oldestKey);
@@ -1042,8 +1052,6 @@ function cacheTrack(trackId, blob) {
 function getCachedTrack(trackId) {
   const blob = blobCache.get(trackId);
   if (!blob) return null;
-
-  // Refresh LRU order.
   blobCache.delete(trackId);
   blobCache.set(trackId, blob);
   return blob;
@@ -1053,7 +1061,6 @@ async function fetchFullTrack(trackId, signal) {
   const cached = getCachedTrack(trackId);
   if (cached) return cached;
 
-  // Jika track ini sedang diprefetch, guna request yang sama.
   if (prefetchPromises.has(trackId)) {
     const blob = await prefetchPromises.get(trackId);
     if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
@@ -1066,10 +1073,7 @@ async function fetchFullTrack(trackId, signal) {
     signal
   });
 
-  if (!res.ok) {
-    throw new Error(`Track fetch failed: HTTP ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(`Track fetch failed: HTTP ${res.status}`);
   const blob = await res.blob();
   if (!blob || !blob.size) throw new Error("Empty audio file");
 
@@ -1081,18 +1085,8 @@ function removeQueuedPrefetch(trackId) {
   prefetchQueue = prefetchQueue.filter(item => item.trackId !== trackId);
 }
 
-function enqueuePrefetch(trackId, priority = 0) {
-  if (!trackId || getCachedTrack(trackId) || prefetchPromises.has(trackId)) return;
-
-  removeQueuedPrefetch(trackId);
-  prefetchQueue.push({ trackId, priority });
-  prefetchQueue.sort((a, b) => b.priority - a.priority);
-  runPrefetchWorker();
-}
-
 function prefetchTrack(trackId, priority = 0) {
   if (!trackId) return Promise.resolve(null);
-
   const cached = getCachedTrack(trackId);
   if (cached) return Promise.resolve(cached);
 
@@ -1100,8 +1094,6 @@ function prefetchTrack(trackId, priority = 0) {
     return prefetchPromises.get(trackId);
   }
 
-  // Promise dibuat sekarang supaya foreground playback yang meminta track
-  // yang sama boleh join request ini tanpa duplicate download.
   let resolvePromise, rejectPromise;
   const promise = new Promise((resolve, reject) => {
     resolvePromise = resolve;
@@ -1127,8 +1119,6 @@ async function runPrefetchWorker() {
       if (!job) continue;
 
       const { trackId, resolvePromise, rejectPromise } = job;
-
-      // Request mungkin sudah menjadi cache semasa menunggu queue.
       const cached = getCachedTrack(trackId);
       if (cached) {
         prefetchPromises.delete(trackId);
@@ -1146,7 +1136,6 @@ async function runPrefetchWorker() {
         });
 
         if (!res.ok) throw new Error(`Prefetch failed: HTTP ${res.status}`);
-
         const blob = await res.blob();
         if (!blob || !blob.size) throw new Error("Empty prefetched audio");
 
@@ -1175,10 +1164,8 @@ function cancelUnusedPrefetches() {
   if (nextIdx !== -1 && playQueue[nextIdx]) wanted.add(playQueue[nextIdx].id);
   if (prevIdx !== -1 && playQueue[prevIdx]) wanted.add(playQueue[prevIdx].id);
 
-  // Buang queue jobs yang sudah tidak relevan.
   prefetchQueue = prefetchQueue.filter(job => wanted.has(job.trackId));
 
-  // Abort hanya request background yang tidak lagi diperlukan.
   for (const [trackId, controller] of prefetchControllers) {
     if (!wanted.has(trackId)) controller.abort();
   }
@@ -1188,15 +1175,12 @@ function prepareSurroundingTracks() {
   const nextIdx = getNextTrackIndex();
   const prevIdx = getPrevTrackIndex();
 
-  // Next = priority tinggi. Previous = priority rendah.
   if (nextIdx !== -1 && playQueue[nextIdx]) {
     prefetchTrack(playQueue[nextIdx].id, 100);
   }
-
   if (prevIdx !== -1 && playQueue[prevIdx]) {
     prefetchTrack(playQueue[prevIdx].id, 10);
   }
-
   cancelUnusedPrefetches();
 }
 
@@ -1217,8 +1201,6 @@ async function playQueueTrack(idx) {
   queueIndex = idx;
   currentPlayingId = track.id;
 
-  // Abort foreground fetch untuk track lama.
-  // Prefetch next/previous kekal berjalan jika masih relevan.
   if (currentFetchController) currentFetchController.abort();
   currentFetchController = new AbortController();
   const fetchSignal = currentFetchController.signal;
@@ -1232,6 +1214,7 @@ async function playQueueTrack(idx) {
   audio.removeAttribute("src");
   audio.load();
   isPlaying = false;
+  updatePlayVisuals();
 
   $("mini-player").style.display = "flex";
   resetFields(parsed.title, parsed.artist);
@@ -1241,7 +1224,6 @@ async function playQueueTrack(idx) {
   renderList();
 
   try {
-    // Jika sudah ada dalam cache/prefetch, ini hampir serta-merta.
     const blob = await fetchFullTrack(track.id, fetchSignal);
     if (fetchSignal.aborted || myToken !== loadToken) return;
 
@@ -1254,43 +1236,14 @@ async function playQueueTrack(idx) {
     audio.src = currentAudioBlobUrl;
     audio.load();
 
-    if (!audio.readyState || audio.readyState < HTMLMediaElement.HAVE_METADATA) {
-      await new Promise((resolve, reject) => {
-        let settled = false;
-        const cleanup = () => {
-          audio.removeEventListener("loadedmetadata", onMeta);
-          audio.removeEventListener("error", onError);
-        };
-        const onMeta = () => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          resolve();
-        };
-        const onError = () => {
-          if (settled) return;
-          settled = true;
-          cleanup();
-          reject(new Error("Audio decode failed"));
-        };
-        audio.addEventListener("loadedmetadata", onMeta, { once: true });
-        audio.addEventListener("error", onError, { once: true });
-      });
-    }
-
-    if (fetchSignal.aborted || myToken !== loadToken) return;
-
     await audio.play();
     if (fetchSignal.aborted || myToken !== loadToken) return;
 
     isPlaying = true;
     updatePlayVisuals();
 
-    // Jangan tahan first sound untuk ID3/artwork.
     applyTags(blob, parsed.title, parsed.artist, myToken);
-
-    // Start prefetch seawal mungkin selepas playback stabil.
-    schedulePrefetch(150);
+    schedulePrefetch(200);
   } catch (err) {
     if (err.name === "AbortError" || fetchSignal.aborted || myToken !== loadToken) return;
 
@@ -1378,16 +1331,18 @@ async function applyTags(blob, fallbackTitle, fallbackArtist, myToken) {
   updateMediaSession(title, artist, artUrl);
 }
 
+function updatePlayVisuals() {
+  $("mini-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;
+  $("big-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;
+  $("art-large-box").classList.toggle("paused", !isPlaying);
+}
+
 function togglePlay() {
   if (queueIndex === -1) return;
-
   if (isPlaying) {
     audio.pause();
   } else {
-    audio.play().then(() => {
-      isPlaying = true;
-      updatePlayVisuals();
-    }).catch(err => console.warn("Play failed", err));
+    audio.play().catch(err => console.warn("Play blocked/failed:", err));
   }
 }
 
@@ -1397,9 +1352,23 @@ function playNext() {
 }
 
 function playPrev() {
+  if (audio.currentTime > 3) {
+    audio.currentTime = 0;
+    return;
+  }
   const prev = getPrevTrackIndex();
   if (prev !== -1) playQueueTrack(prev);
 }
+
+// ====== EVENT LISTENERS ======
+$("mini-play").addEventListener("click", (e) => {
+  e.stopPropagation();
+  togglePlay();
+});
+
+$("play-big").addEventListener("click", togglePlay);
+$("next-btn").addEventListener("click", playNext);
+$("prev-btn").addEventListener("click", playPrev);
 
 audio.addEventListener("play", () => {
   isPlaying = true;
@@ -1423,15 +1392,34 @@ audio.addEventListener("ended", () => {
 audio.addEventListener("timeupdate", () => {
   const duration = audio.duration || 0;
   const current = audio.currentTime || 0;
-  $("time-cur").textContent = formatTime(current);
-  $("time-dur").textContent = formatTime(duration);
-  if (duration > 0) {
-    const pct = Math.min(100, Math.max(0, (current / duration) * 100));
-    $("mini-progress-bar").style.width = pct + "%";
-    $("seek").value = pct;
+  if (!isSeeking) {
+    $("time-cur").textContent = formatTime(current);
+    $("time-dur").textContent = duration > 0 ? "-" + formatTime(duration - current) : "0:00";
+    if (duration > 0) {
+      const pct = Math.min(100, Math.max(0, (current / duration) * 100));
+      $("mini-progress-bar").style.width = pct + "%";
+      $("seek").value = pct;
+    }
   }
 });
 
+$("seek").addEventListener("input", (e) => {
+  isSeeking = true;
+  const duration = audio.duration || 0;
+  if (duration > 0) {
+    const seekTo = (e.target.value / 100) * duration;
+    $("time-cur").textContent = formatTime(seekTo);
+    $("time-dur").textContent = "-" + formatTime(duration - seekTo);
+  }
+});
+
+$("seek").addEventListener("change", (e) => {
+  const duration = audio.duration || 0;
+  if (duration > 0) {
+    audio.currentTime = (e.target.value / 100) * duration;
+  }
+  isSeeking = false;
+});
 </script>
 </body>
 </html>
