@@ -483,33 +483,33 @@
 
 <script>
 // ====== CONFIGURATION ======
-const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";
-const SCOPES = "https://www.googleapis.com/auth/drive.readonly";
-const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";
-let rootFolderName = "Drive";
-const FOLDER_MIME = "application/vnd.google-apps.folder";
+const CLIENT_ID = "153691529328-11bp8uhsmm3f8p6rrc8b1ik607bck3qm.apps.googleusercontent.com";[cite: 1]
+const SCOPES = "https://www.googleapis.com/auth/drive.readonly";[cite: 1]
+const ROOT_FOLDER_ID = "1Mj8IQYK-fj0oRhkyurLO0G9Q2SIGTst9";[cite: 1]
+let rootFolderName = "Drive";[cite: 1]
+const FOLDER_MIME = "application/vnd.google-apps.folder";[cite: 1]
 
-let accessToken = localStorage.getItem("petilagu_token") || null;
-let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);
-let tokenClient = null;
-let authIntent = "initial";
+let accessToken = localStorage.getItem("petilagu_token") || null;[cite: 1]
+let tokenExpiresAt = parseInt(localStorage.getItem("petilagu_token_exp") || "0", 10);[cite: 1]
+let tokenClient = null;[cite: 1]
+let authIntent = "initial";[cite: 1]
 
-let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
-let currentFolders = [];
-let tracks = [];
-let filteredFolders = [];
-let filteredTracks = [];
+let breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];[cite: 1]
+let currentFolders = [];[cite: 1]
+let tracks = [];[cite: 1]
+let filteredFolders = [];[cite: 1]
+let filteredTracks = [];[cite: 1]
 
-let playQueue = [];
-let queueIndex = -1;
-let isShuffle = localStorage.getItem("petilagu_shuffle") === "1";
-let loopMode = parseInt(localStorage.getItem("petilagu_loop") || "0", 10);
+let playQueue = [];[cite: 1]
+let queueIndex = -1;[cite: 1]
+let isShuffle = localStorage.getItem("petilagu_shuffle") === "1";[cite: 1]
+let loopMode = parseInt(localStorage.getItem("petilagu_loop") || "0", 10);[cite: 1]
 
-let currentPlayingId = null;
-let currentArtBlobUrl = null;
-let currentAudioBlobUrl = null;
-let isPlaying = false;
-let loadToken = 0;
+let currentPlayingId = null;[cite: 1]
+let currentArtBlobUrl = null;[cite: 1]
+let currentAudioBlobUrl = null;[cite: 1]
+let isPlaying = false;[cite: 1]
+let loadToken = 0;[cite: 1]
 let isSeeking = false;
 
 // ====== iOS Safari AudioSession Keep-Alive ======
@@ -539,57 +539,57 @@ function unlockIOSAudio() {
 }
 
 // Network management controllers
-let currentFetchController = null;
-let prefetchTimer = null;
-const blobCache = new Map();
+let currentFetchController = null;[cite: 1]
+let prefetchTimer = null;[cite: 1]
+const blobCache = new Map();[cite: 1]
 const MAX_BLOB_CACHE = 4;
-const prefetchControllers = new Map();
-const prefetchPromises = new Map();
-let prefetchQueue = [];
-let prefetchWorkerRunning = false;
+const prefetchControllers = new Map();[cite: 1]
+const prefetchPromises = new Map();[cite: 1]
+let prefetchQueue = [];[cite: 1]
+let prefetchWorkerRunning = false;[cite: 1]
 
-let selectedSheetTrack = null;
-let inQueueMode = false;
+let selectedSheetTrack = null;[cite: 1]
+let inQueueMode = false;[cite: 1]
 
-const $ = (id) => document.getElementById(id);
-const audio = $("audio-el");
+const $ = (id) => document.getElementById(id);[cite: 1]
+const audio = $("audio-el");[cite: 1]
 
 const PLAY_ICON = `<path d="M8 5v14l11-7z"/>`;
 const PAUSE_ICON = `<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>`;
 
 function showToast(msg) {
-  const t = $("toast");
-  t.textContent = msg; t.style.display = "block";
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.display = "none"; }, 1800);
+  const t = $("toast");[cite: 1]
+  t.textContent = msg; t.style.display = "block";[cite: 1]
+  clearTimeout(t._timer);[cite: 1]
+  t._timer = setTimeout(() => { t.style.display = "none"; }, 1800);[cite: 1]
 }
 
 function showState(name) {
-  ["state-signed-out", "state-loading", "state-error", "state-empty"].forEach(id => {
-    $(id).style.display = (id === name) ? "flex" : "none";
+  ["state-signed-out", "state-loading", "state-error", "state-empty"].forEach(id => {[cite: 1]
+    $(id).style.display = (id === name) ? "flex" : "none";[cite: 1]
   });
-  $("list-wrap").style.display = (name === null) ? "block" : "none";
-  $("search-wrap").style.display = (name === null) ? "block" : "none";
-  $("breadcrumb-wrap").style.display = (name === "state-signed-out") ? "none" : "flex";
+  $("list-wrap").style.display = (name === null) ? "block" : "none";[cite: 1]
+  $("search-wrap").style.display = (name === null) ? "block" : "none";[cite: 1]
+  $("breadcrumb-wrap").style.display = (name === "state-signed-out") ? "none" : "flex";[cite: 1]
 }
 
 function stripExt(name) {
-  let clean = name.replace(/\.[^/.]+$/, "");
-  clean = clean.replace(/_+-_+|_+-\s*|\s*-_+/g, " - ");
-  clean = clean.replace(/_/g, " ");
-  return clean.replace(/\s+/g, " ").trim();
+  let clean = name.replace(/\.[^/.]+$/, "");[cite: 1]
+  clean = clean.replace(/_+-_+|_+-\s*|\s*-_+/g, " - ");[cite: 1]
+  clean = clean.replace(/_/g, " ");[cite: 1]
+  return clean.replace(/\s+/g, " ").trim();[cite: 1]
 }
 
 function parseArtistTitle(rawName) {
-  const clean = stripExt(rawName);
-  if (clean.includes(" - ")) {
-    const parts = clean.split(" - ");
+  const clean = stripExt(rawName);[cite: 1]
+  if (clean.includes(" - ")) {[cite: 1]
+    const parts = clean.split(" - ");[cite: 1]
     return {
-      artist: parts[0].trim(),
-      title: parts.slice(1).join(" - ").trim()
+      artist: parts[0].trim(),[cite: 1]
+      title: parts.slice(1).join(" - ").trim()[cite: 1]
     };
   }
-  return { artist: "Unknown Artist", title: clean };
+  return { artist: "Unknown Artist", title: clean };[cite: 1]
 }
 
 function formatTime(sec) {
@@ -635,9 +635,9 @@ function initGoogleClient() {
 }
 
 window.addEventListener("load", () => {
-  setupMediaSessionHandlers();
-  if (isShuffle) $("shuffle-btn").classList.add("active");
-  applyLoopUI();
+  setupMediaSessionHandlers();[cite: 1]
+  if (isShuffle) $("shuffle-btn").classList.add("active");[cite: 1]
+  applyLoopUI();[cite: 1]
 
   if (typeof google !== "undefined" && google.accounts && !tokenClient) {
     initGoogleClient();
@@ -649,192 +649,192 @@ $("signin-btn").addEventListener("click", () => {
     alert("Sistem Google sedang dimuat turun. Sila tunggu 2 saat dan tekan semula.");
     return;
   }
-  authIntent = "initial";
-  tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });
+  authIntent = "initial";[cite: 1]
+  tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });[cite: 1]
 });
 
 async function onSignedIn() {
-  $("signin-btn").style.display = "none";
-  $("user-chip").style.display = "flex";
-  $("user-chip").innerHTML = `<span>Connected</span>`;
+  $("signin-btn").style.display = "none";[cite: 1]
+  $("user-chip").style.display = "flex";[cite: 1]
+  $("user-chip").innerHTML = `<span>Connected</span>`;[cite: 1]
 
   try {
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=name`, {
-      headers: { Authorization: `Bearer ${accessToken}` }
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${ROOT_FOLDER_ID}?fields=name`, {[cite: 1]
+      headers: { Authorization: `Bearer ${accessToken}` }[cite: 1]
     });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.name) rootFolderName = data.name;
+    if (res.ok) {[cite: 1]
+      const data = await res.json();[cite: 1]
+      if (data.name) rootFolderName = data.name;[cite: 1]
     }
-  } catch (err) {
+  } catch (err) {[cite: 1]
     console.error("Failed to fetch root folder name:", err);
   }
 
-  breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];
-  loadFolder(ROOT_FOLDER_ID);
+  breadcrumbPath = [{ id: ROOT_FOLDER_ID, name: rootFolderName }];[cite: 1]
+  loadFolder(ROOT_FOLDER_ID);[cite: 1]
 }
 
-function currentFolderId() { return breadcrumbPath[breadcrumbPath.length - 1].id; }
+function currentFolderId() { return breadcrumbPath[breadcrumbPath.length - 1].id; }[cite: 1]
 
 // ====== BREADCRUMB ======
 function renderBreadcrumb() {
-  $("back-btn").className = breadcrumbPath.length > 1 ? "" : "hidden";
-  $("crumbs").innerHTML = breadcrumbPath.map((c, i) => {
-    const sep = i > 0 ? `<span style="opacity:0.3;">/</span>` : "";
-    return `${sep}<span class="crumb" data-i="${i}">${escapeHtml(c.name)}</span>`;
-  }).join(" ");
-  $("crumbs").querySelectorAll(".crumb").forEach(el => {
-    el.addEventListener("click", () => {
+  $("back-btn").className = breadcrumbPath.length > 1 ? "" : "hidden";[cite: 1]
+  $("crumbs").innerHTML = breadcrumbPath.map((c, i) => {[cite: 1]
+    const sep = i > 0 ? `<span style="opacity:0.3;">/</span>` : "";[cite: 1]
+    return `${sep}<span class="crumb" data-i="${i}">${escapeHtml(c.name)}</span>`;[cite: 1]
+  }).join(" ");[cite: 1]
+  $("crumbs").querySelectorAll(".crumb").forEach(el => {[cite: 1]
+    el.addEventListener("click", () => {[cite: 1]
       const i = parseInt(el.dataset.i, 10);
-      if (i < breadcrumbPath.length - 1) {
-        breadcrumbPath = breadcrumbPath.slice(0, i + 1);
-        loadFolder(currentFolderId());
+      if (i < breadcrumbPath.length - 1) {[cite: 1]
+        breadcrumbPath = breadcrumbPath.slice(0, i + 1);[cite: 1]
+        loadFolder(currentFolderId());[cite: 1]
       }
     });
   });
 }
 
-$("back-btn").addEventListener("click", () => {
-  if (breadcrumbPath.length > 1) {
-    breadcrumbPath = breadcrumbPath.slice(0, -1);
-    loadFolder(currentFolderId());
+$("back-btn").addEventListener("click", () => {[cite: 1]
+  if (breadcrumbPath.length > 1) {[cite: 1]
+    breadcrumbPath = breadcrumbPath.slice(0, -1);[cite: 1]
+    loadFolder(currentFolderId());[cite: 1]
   }
 });
 
 function enterFolder(id, name) {
-  breadcrumbPath = [...breadcrumbPath, { id, name }];
-  loadFolder(id);
+  breadcrumbPath = [...breadcrumbPath, { id, name }];[cite: 1]
+  loadFolder(id);[cite: 1]
 }
 
 // ====== DRIVE RETRIEVAL ======
 async function loadFolder(folderId) {
-  showState("state-loading");
-  renderBreadcrumb();
-  currentFolders = [];
-  tracks = [];
+  showState("state-loading");[cite: 1]
+  renderBreadcrumb();[cite: 1]
+  currentFolders = [];[cite: 1]
+  tracks = [];[cite: 1]
   try {
-    let pageToken = null;
-    const q = `'${folderId}' in parents and trashed = false and (mimeType = '${FOLDER_MIME}' or mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.audio')`;
+    let pageToken = null;[cite: 1]
+    const q = `'${folderId}' in parents and trashed = false and (mimeType = '${FOLDER_MIME}' or mimeType contains 'audio/' or mimeType = 'application/vnd.google-apps.audio')`;[cite: 1]
     do {
-      const url = new URL("https://www.googleapis.com/drive/v3/files");
-      url.searchParams.set("q", q);
-      url.searchParams.set("fields", "nextPageToken, files(id, name, mimeType, size)");
-      url.searchParams.set("pageSize", "1000");
-      url.searchParams.set("spaces", "drive");
-      if (pageToken) url.searchParams.set("pageToken", pageToken);
+      const url = new URL("https://www.googleapis.com/drive/v3/files");[cite: 1]
+      url.searchParams.set("q", q);[cite: 1]
+      url.searchParams.set("fields", "nextPageToken, files(id, name, mimeType, size)");[cite: 1]
+      url.searchParams.set("pageSize", "1000");[cite: 1]
+      url.searchParams.set("spaces", "drive");[cite: 1]
+      if (pageToken) url.searchParams.set("pageToken", pageToken);[cite: 1]
 
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-      if (res.status === 401) {
-        authIntent = "folder";
-        tokenClient.requestAccessToken({ prompt: "" });
-        return;
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });[cite: 1]
+      if (res.status === 401) {[cite: 1]
+        authIntent = "folder";[cite: 1]
+        tokenClient.requestAccessToken({ prompt: "" });[cite: 1]
+        return;[cite: 1]
       }
-      if (!res.ok) throw new Error("Drive API error " + res.status);
-      const data = await res.json();
-      for (const f of (data.files || [])) {
-        if (f.mimeType === FOLDER_MIME) currentFolders.push(f);
-        else tracks.push(f);
+      if (!res.ok) throw new Error("Drive API error " + res.status);[cite: 1]
+      const data = await res.json();[cite: 1]
+      for (const f of (data.files || [])) {[cite: 1]
+        if (f.mimeType === FOLDER_MIME) currentFolders.push(f);[cite: 1]
+        else tracks.push(f);[cite: 1]
       }
-      pageToken = data.nextPageToken;
-    } while (pageToken);
+      pageToken = data.nextPageToken;[cite: 1]
+    } while (pageToken);[cite: 1]
 
-    currentFolders.sort((a,b) => a.name.localeCompare(b.name, "en"));
-    tracks.sort((a,b) => a.name.localeCompare(b.name, "en"));
+    currentFolders.sort((a,b) => a.name.localeCompare(b.name, "en"));[cite: 1]
+    tracks.sort((a,b) => a.name.localeCompare(b.name, "en"));[cite: 1]
 
-    if (currentFolders.length === 0 && tracks.length === 0) {
-      showState("state-empty");
-      return;
+    if (currentFolders.length === 0 && tracks.length === 0) {[cite: 1]
+      showState("state-empty");[cite: 1]
+      return;[cite: 1]
     }
-    filteredFolders = currentFolders;
-    filteredTracks = tracks;
-    renderList();
-    showState(null);
+    filteredFolders = currentFolders;[cite: 1]
+    filteredTracks = tracks;[cite: 1]
+    renderList();[cite: 1]
+    showState(null);[cite: 1]
   } catch(err) {
-    console.error(err);
-    showState("state-error");
-    $("error-msg").textContent = "Could not fetch Drive content.";
+    console.error(err);[cite: 1]
+    showState("state-error");[cite: 1]
+    $("error-msg").textContent = "Could not fetch Drive content.";[cite: 1]
   }
 }
 
 function renderList() {
-  const wrap = $("list-wrap");
-  const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;
-  if (!hasResults) {
-    wrap.innerHTML = `<div class="state-panel"><p>No results found</p></div>`;
-    return;
+  const wrap = $("list-wrap");[cite: 1]
+  const hasResults = filteredFolders.length > 0 || filteredTracks.length > 0;[cite: 1]
+  if (!hasResults) {[cite: 1]
+    wrap.innerHTML = `<div class="state-panel"><p>No results found</p></div>`;[cite: 1]
+    return;[cite: 1]
   }
-  let html = "";
-  if (filteredFolders.length > 0) {
-    html += `<div class="section-label">FOLDERS</div>`;
+  let html = "";[cite: 1]
+  if (filteredFolders.length > 0) {[cite: 1]
+    html += `<div class="section-label">FOLDERS</div>`;[cite: 1]
     html += filteredFolders.map(f => `
       <div class="folder-row" data-folder-id="${f.id}" data-folder-name="${escapeHtml(f.name)}">
         <div class="ficon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a1 1 0 00-1 1v14a1 1 0 001 1h16a1 1 0 001-1V8a1 1 0 00-1-1h-9l-2-3z"/></svg></div>
         <div class="name">${escapeHtml(f.name)}</div>
-      </div>`).join("");
+      </div>`).join("");[cite: 1]
   }
-  if (filteredTracks.length > 0) {
-    html += `<div class="section-label">TRACKS (HOLD FOR OPTIONS)</div>`;
-    html += filteredTracks.map((t) => {
-      const isCur = t.id === currentPlayingId;
-      const parsed = parseArtistTitle(t.name);
+  if (filteredTracks.length > 0) {[cite: 1]
+    html += `<div class="section-label">TRACKS (HOLD FOR OPTIONS)</div>`;[cite: 1]
+    html += filteredTracks.map((t) => {[cite: 1]
+      const isCur = t.id === currentPlayingId;[cite: 1]
+      const parsed = parseArtistTitle(t.name);[cite: 1]
       return `<div class="track ${isCur ? 'playing' : ''}" data-id="${t.id}">
         <div class="meta" style="flex:1;min-width:0;">
           <div class="name">${escapeHtml(parsed.title)}</div>
           <div class="sub">${escapeHtml(parsed.artist)}</div>
         </div>
-      </div>`;
-    }).join("");
+      </div>`;[cite: 1]
+    }).join("");[cite: 1]
   }
-  wrap.innerHTML = html;
+  wrap.innerHTML = html;[cite: 1]
 
-  wrap.querySelectorAll(".folder-row").forEach(el => {
-    el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));
+  wrap.querySelectorAll(".folder-row").forEach(el => {[cite: 1]
+    el.addEventListener("click", () => enterFolder(el.dataset.folderId, el.dataset.folderName));[cite: 1]
   });
 
-  wrap.querySelectorAll(".track").forEach(el => {
-    let pressTimer = null;
-    let isLongPress = false;
+  wrap.querySelectorAll(".track").forEach(el => {[cite: 1]
+    let pressTimer = null;[cite: 1]
+    let isLongPress = false;[cite: 1]
 
-    const startPress = () => {
-      isLongPress = false;
-      pressTimer = setTimeout(() => {
-        isLongPress = true;
-        if (navigator.vibrate) navigator.vibrate(50);
-        const trackId = el.dataset.id;
-        const selectedTrack = tracks.find(t => t.id === trackId);
-        if (selectedTrack) openActionSheet(selectedTrack);
-      }, 500);
+    const startPress = () => {[cite: 1]
+      isLongPress = false;[cite: 1]
+      pressTimer = setTimeout(() => {[cite: 1]
+        isLongPress = true;[cite: 1]
+        if (navigator.vibrate) navigator.vibrate(50);[cite: 1]
+        const trackId = el.dataset.id;[cite: 1]
+        const selectedTrack = tracks.find(t => t.id === trackId);[cite: 1]
+        if (selectedTrack) openActionSheet(selectedTrack);[cite: 1]
+      }, 500);[cite: 1]
     };
 
-    const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };
+    const cancelPress = () => { if (pressTimer) clearTimeout(pressTimer); };[cite: 1]
 
-    el.addEventListener("touchstart", startPress, { passive: true });
-    el.addEventListener("touchend", (e) => {
-      cancelPress();
-      if (!isLongPress && e.cancelable) {
-        const trackId = el.dataset.id;
-        const trackIndex = tracks.findIndex(t => t.id === trackId);
-        if (trackIndex > -1) {
+    el.addEventListener("touchstart", startPress, { passive: true });[cite: 1]
+    el.addEventListener("touchend", (e) => {[cite: 1]
+      cancelPress();[cite: 1]
+      if (!isLongPress && e.cancelable) {[cite: 1]
+        const trackId = el.dataset.id;[cite: 1]
+        const trackIndex = tracks.findIndex(t => t.id === trackId);[cite: 1]
+        if (trackIndex > -1) {[cite: 1]
           unlockIOSAudio();
-          playQueue = tracks.slice();
-          queueIndex = trackIndex;
-          playQueueTrack(queueIndex);
+          playQueue = tracks.slice();[cite: 1]
+          queueIndex = trackIndex;[cite: 1]
+          playQueueTrack(queueIndex);[cite: 1]
         }
       }
     });
-    el.addEventListener("touchmove", cancelPress);
+    el.addEventListener("touchmove", cancelPress);[cite: 1]
 
-    el.addEventListener("mousedown", startPress);
-    el.addEventListener("mouseup", () => {
-      cancelPress();
-      if (!isLongPress) {
-        const trackId = el.dataset.id;
-        const trackIndex = tracks.findIndex(t => t.id === trackId);
-        if (trackIndex > -1) {
+    el.addEventListener("mousedown", startPress);[cite: 1]
+    el.addEventListener("mouseup", () => {[cite: 1]
+      cancelPress();[cite: 1]
+      if (!isLongPress) {[cite: 1]
+        const trackId = el.dataset.id;[cite: 1]
+        const trackIndex = tracks.findIndex(t => t.id === trackId);[cite: 1]
+        if (trackIndex > -1) {[cite: 1]
           unlockIOSAudio();
-          playQueue = tracks.slice();
-          queueIndex = trackIndex;
-          playQueueTrack(queueIndex);
+          playQueue = tracks.slice();[cite: 1]
+          queueIndex = trackIndex;[cite: 1]
+          playQueueTrack(queueIndex);[cite: 1]
         }
       }
     });
@@ -842,96 +842,96 @@ function renderList() {
 }
 
 function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));[cite: 1]
 }
 
-$("search-input").addEventListener("input", (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  filteredFolders = q ? currentFolders.filter(f => f.name.toLowerCase().includes(q)) : currentFolders;
-  filteredTracks = q ? tracks.filter(t => t.name.toLowerCase().includes(q)) : tracks;
-  renderList();
+$("search-input").addEventListener("input", (e) => {[cite: 1]
+  const q = e.target.value.trim().toLowerCase();[cite: 1]
+  filteredFolders = q ? currentFolders.filter(f => f.name.toLowerCase().includes(q)) : currentFolders;[cite: 1]
+  filteredTracks = q ? tracks.filter(t => t.name.toLowerCase().includes(q)) : tracks;[cite: 1]
+  renderList();[cite: 1]
 });
 
 // ====== LONG PRESS CONTEXT ACTION SHEET ======
 function openActionSheet(track) {
-  selectedSheetTrack = track;
-  const parsed = parseArtistTitle(track.name);
-  $("sheet-song-title").textContent = parsed.title;
-  $("sheet-song-sub").textContent = parsed.artist;
-  $("action-sheet-backdrop").style.display = "flex";
+  selectedSheetTrack = track;[cite: 1]
+  const parsed = parseArtistTitle(track.name);[cite: 1]
+  $("sheet-song-title").textContent = parsed.title;[cite: 1]
+  $("sheet-song-sub").textContent = parsed.artist;[cite: 1]
+  $("action-sheet-backdrop").style.display = "flex";[cite: 1]
 }
 
-$("action-sheet-backdrop").addEventListener("click", (e) => {
-  if (e.target === $("action-sheet-backdrop")) {
-    $("action-sheet-backdrop").style.display = "none";
+$("action-sheet-backdrop").addEventListener("click", (e) => {[cite: 1]
+  if (e.target === $("action-sheet-backdrop")) {[cite: 1]
+    $("action-sheet-backdrop").style.display = "none";[cite: 1]
   }
 });
 
-$("sheet-play-next").addEventListener("click", () => {
-  if (!selectedSheetTrack) return;
-  if (playQueue.length === 0) {
+$("sheet-play-next").addEventListener("click", () => {[cite: 1]
+  if (!selectedSheetTrack) return;[cite: 1]
+  if (playQueue.length === 0) {[cite: 1]
     unlockIOSAudio();
-    playQueue = [selectedSheetTrack];
-    queueIndex = 0;
-    playQueueTrack(0);
+    playQueue = [selectedSheetTrack];[cite: 1]
+    queueIndex = 0;[cite: 1]
+    playQueueTrack(0);[cite: 1]
   } else {
-    playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);
-    showToast(`Will Play Next`);
-    renderQueueList();
+    playQueue.splice(queueIndex + 1, 0, selectedSheetTrack);[cite: 1]
+    showToast(`Will Play Next`);[cite: 1]
+    renderQueueList();[cite: 1]
     schedulePrefetch(50);
   }
-  $("action-sheet-backdrop").style.display = "none";
+  $("action-sheet-backdrop").style.display = "none";[cite: 1]
 });
 
-$("sheet-add-queue").addEventListener("click", () => {
-  if (!selectedSheetTrack) return;
-  if (playQueue.length === 0) {
+$("sheet-add-queue").addEventListener("click", () => {[cite: 1]
+  if (!selectedSheetTrack) return;[cite: 1]
+  if (playQueue.length === 0) {[cite: 1]
     unlockIOSAudio();
-    playQueue = [selectedSheetTrack];
-    queueIndex = 0;
-    playQueueTrack(0);
+    playQueue = [selectedSheetTrack];[cite: 1]
+    queueIndex = 0;[cite: 1]
+    playQueueTrack(0);[cite: 1]
   } else {
-    playQueue.push(selectedSheetTrack);
-    showToast(`Added to Queue`);
-    renderQueueList();
+    playQueue.push(selectedSheetTrack);[cite: 1]
+    showToast(`Added to Queue`);[cite: 1]
+    renderQueueList();[cite: 1]
     schedulePrefetch(50);
   }
-  $("action-sheet-backdrop").style.display = "none";
+  $("action-sheet-backdrop").style.display = "none";[cite: 1]
 });
 
 // ====== UI VIEW SWITCHERS ======
 function setQueueMode(showQueue) {
-  inQueueMode = showQueue;
-  $("view-artwork").style.display = showQueue ? "none" : "flex";
-  $("view-queue").style.display = showQueue ? "flex" : "none";
-  $("toggle-queue-btn").classList.toggle("active", showQueue);
-  if (showQueue) renderQueueList();
+  inQueueMode = showQueue;[cite: 1]
+  $("view-artwork").style.display = showQueue ? "none" : "flex";[cite: 1]
+  $("view-queue").style.display = showQueue ? "flex" : "none";[cite: 1]
+  $("toggle-queue-btn").classList.toggle("active", showQueue);[cite: 1]
+  if (showQueue) renderQueueList();[cite: 1]
 }
 
-$("toggle-queue-btn").addEventListener("click", () => {
-  setQueueMode(!inQueueMode);
+$("toggle-queue-btn").addEventListener("click", () => {[cite: 1]
+  setQueueMode(!inQueueMode);[cite: 1]
 });
 
-$("btn-back-home").addEventListener("click", () => {
-  $("full-player").style.display = "none";
+$("btn-back-home").addEventListener("click", () => {[cite: 1]
+  $("full-player").style.display = "none";[cite: 1]
 });
-$("collapse-grabber").addEventListener("click", () => {
-  $("full-player").style.display = "none";
+$("collapse-grabber").addEventListener("click", () => {[cite: 1]
+  $("full-player").style.display = "none";[cite: 1]
 });
 
-$("mini-player").addEventListener("click", (e) => {
+$("mini-player").addEventListener("click", (e) => {[cite: 1]
   if (e.target.closest("#mini-play")) return;
-  $("full-player").style.display = "flex";
+  $("full-player").style.display = "flex";[cite: 1]
 });
 
 function renderQueueList() {
-  const container = $("queue-items-wrap");
-  const upNext = playQueue.slice(queueIndex + 1);
+  const container = $("queue-items-wrap");[cite: 1]
+  const upNext = playQueue.slice(queueIndex + 1);[cite: 1]
 
-  let html = "";
-  if (queueIndex >= 0 && playQueue[queueIndex]) {
-    const cur = playQueue[queueIndex];
-    const parsed = parseArtistTitle(cur.name);
+  let html = "";[cite: 1]
+  if (queueIndex >= 0 && playQueue[queueIndex]) {[cite: 1]
+    const cur = playQueue[queueIndex];[cite: 1]
+    const parsed = parseArtistTitle(cur.name);[cite: 1]
     html += `
       <div class="queue-row now-playing">
         <div class="q-art">
@@ -942,14 +942,14 @@ function renderQueueList() {
           <div class="q-title">${escapeHtml(parsed.title)}</div>
           <div class="q-sub">${escapeHtml(parsed.artist)}</div>
         </div>
-      </div>`;
+      </div>`;[cite: 1]
   }
 
-  if (upNext.length === 0) {
-    html += `<div style="font-size:13px; color:var(--text-sub); padding:16px 0;">No tracks queued next.</div>`;
+  if (upNext.length === 0) {[cite: 1]
+    html += `<div style="font-size:13px; color:var(--text-sub); padding:16px 0;">No tracks queued next.</div>`;[cite: 1]
   } else {
-    html += upNext.map((t, idx) => {
-      const parsed = parseArtistTitle(t.name);
+    html += upNext.map((t, idx) => {[cite: 1]
+      const parsed = parseArtistTitle(t.name);[cite: 1]
       return `
         <div class="queue-row">
           <div class="q-art">
@@ -962,112 +962,134 @@ function renderQueueList() {
           <button class="del-btn" data-subidx="${idx}">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14"/></svg>
           </button>
-        </div>`;
-    }).join("");
+        </div>`;[cite: 1]
+    }).join("");[cite: 1]
   }
-  container.innerHTML = html;
+  container.innerHTML = html;[cite: 1]
 
-  container.querySelectorAll(".del-btn").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
+  container.querySelectorAll(".del-btn").forEach(btn => {[cite: 1]
+    btn.addEventListener("click", (e) => {[cite: 1]
+      e.stopPropagation();[cite: 1]
       const subIdx = parseInt(btn.dataset.subidx, 10);
-      playQueue.splice(queueIndex + 1 + subIdx, 1);
-      renderQueueList();
+      playQueue.splice(queueIndex + 1 + subIdx, 1);[cite: 1]
+      renderQueueList();[cite: 1]
       schedulePrefetch(50);
     });
   });
 }
 
-$("clear-queue-btn").addEventListener("click", () => {
-  if (playQueue.length <= 1) {
-    showToast("Queue already empty");
-    return;
+$("clear-queue-btn").addEventListener("click", () => {[cite: 1]
+  if (playQueue.length <= 1) {[cite: 1]
+    showToast("Queue already empty");[cite: 1]
+    return;[cite: 1]
   }
-  playQueue = playQueue.slice(0, queueIndex + 1);
-  renderQueueList();
+  playQueue = playQueue.slice(0, queueIndex + 1);[cite: 1]
+  renderQueueList();[cite: 1]
   schedulePrefetch(50);
-  showToast("Queue cleared");
+  showToast("Queue cleared");[cite: 1]
 });
 
 // ====== MODES & NAVIGATION ======
 function applyLoopUI() {
-  const btn = $("loop-btn");
-  const badge = $("loop-badge");
-  if (loopMode === 0) {
-    btn.classList.remove("active");
-    badge.style.display = "none";
-  } else if (loopMode === 1) {
-    btn.classList.add("active");
-    badge.style.display = "none";
+  const btn = $("loop-btn");[cite: 1]
+  const badge = $("loop-badge");[cite: 1]
+  if (loopMode === 0) {[cite: 1]
+    btn.classList.remove("active");[cite: 1]
+    badge.style.display = "none";[cite: 1]
+  } else if (loopMode === 1) {[cite: 1]
+    btn.classList.add("active");[cite: 1]
+    badge.style.display = "none";[cite: 1]
   } else {
-    btn.classList.add("active");
-    badge.style.display = "block";
+    btn.classList.add("active");[cite: 1]
+    badge.style.display = "block";[cite: 1]
   }
 }
 
-$("shuffle-btn").addEventListener("click", () => {
-  isShuffle = !isShuffle;
-  $("shuffle-btn").classList.toggle("active", isShuffle);
-  localStorage.setItem("petilagu_shuffle", isShuffle ? "1" : "0");
-  showToast(isShuffle ? "Shuffle On" : "Shuffle Off");
+$("shuffle-btn").addEventListener("click", () => {[cite: 1]
+  isShuffle = !isShuffle;[cite: 1]
+  $("shuffle-btn").classList.toggle("active", isShuffle);[cite: 1]
+  localStorage.setItem("petilagu_shuffle", isShuffle ? "1" : "0");[cite: 1]
+  showToast(isShuffle ? "Shuffle On" : "Shuffle Off");[cite: 1]
   schedulePrefetch(50);
 });
 
-$("loop-btn").addEventListener("click", () => {
-  loopMode = (loopMode + 1) % 3;
-  localStorage.setItem("petilagu_loop", loopMode.toString());
-  applyLoopUI();
+$("loop-btn").addEventListener("click", () => {[cite: 1]
+  loopMode = (loopMode + 1) % 3;[cite: 1]
+  localStorage.setItem("petilagu_loop", loopMode.toString());[cite: 1]
+  applyLoopUI();[cite: 1]
 });
 
 function getNextTrackIndex() {
-  if (playQueue.length === 0) return -1;
-  if (loopMode === 2) return queueIndex;
-  if (isShuffle) {
-    if (playQueue.length === 1) return 0;
-    let r = queueIndex;
-    while (r === queueIndex) { r = Math.floor(Math.random() * playQueue.length); }
-    return r;
+  if (playQueue.length === 0) return -1;[cite: 1]
+  if (loopMode === 2) return queueIndex;[cite: 1]
+  if (isShuffle) {[cite: 1]
+    if (playQueue.length === 1) return 0;[cite: 1]
+    let r = queueIndex;[cite: 1]
+    while (r === queueIndex) { r = Math.floor(Math.random() * playQueue.length); }[cite: 1]
+    return r;[cite: 1]
   }
-  if (queueIndex < playQueue.length - 1) return queueIndex + 1;
-  if (loopMode === 1) return 0;
-  return -1;
+  if (queueIndex < playQueue.length - 1) return queueIndex + 1;[cite: 1]
+  if (loopMode === 1) return 0;[cite: 1]
+  return -1;[cite: 1]
 }
 
 function getPrevTrackIndex() {
-  if (playQueue.length === 0) return -1;
-  if (loopMode === 2) return queueIndex;
-  if (queueIndex > 0) return queueIndex - 1;
-  if (loopMode === 1) return playQueue.length - 1;
-  return 0;
+  if (playQueue.length === 0) return -1;[cite: 1]
+  if (loopMode === 2) return queueIndex;[cite: 1]
+  if (queueIndex > 0) return queueIndex - 1;[cite: 1]
+  if (loopMode === 1) return playQueue.length - 1;[cite: 1]
+  return 0;[cite: 1]
 }
 
-// ====== MEDIA SESSION INTEGRATION ======
+// ====== MEDIA SESSION INTEGRATION (KEMAS KINI SKIP LAGU IOS) ======
 function updateMediaSession(title, artist, artworkUrl) {
-  if (!("mediaSession" in navigator)) return;
-  navigator.mediaSession.metadata = new MediaMetadata({
-    title, artist,
-    album: "Peti Lagu",
-    artwork: artworkUrl ? [
-      { src: artworkUrl, sizes: "512x512", type: "image/jpeg" },
-      { src: artworkUrl, sizes: "256x256", type: "image/jpeg" }
-    ] : []
+  if (!("mediaSession" in navigator)) return;[cite: 1]
+  navigator.mediaSession.metadata = new MediaMetadata({[cite: 1]
+    title, artist,[cite: 1]
+    album: "Peti Lagu",[cite: 1]
+    artwork: artworkUrl ? [[cite: 1]
+      { src: artworkUrl, sizes: "512x512", type: "image/jpeg" },[cite: 1]
+      { src: artworkUrl, sizes: "256x256", type: "image/jpeg" }[cite: 1]
+    ] : [][cite: 1]
   });
 }
 
 function setupMediaSessionHandlers() {
-  if (!("mediaSession" in navigator)) return;
-  navigator.mediaSession.setActionHandler("previoustrack", () => playPrev());
-  navigator.mediaSession.setActionHandler("nexttrack", () => playNext());
+  if (!("mediaSession" in navigator)) return;[cite: 1]
+
+  // 1. Wajib aktifkan handler Next & Prev lagu penuh
+  navigator.mediaSession.setActionHandler("previoustrack", () => {
+    playPrev();
+  });
+  navigator.mediaSession.setActionHandler("nexttrack", () => {
+    playNext();
+  });
+
+  // 2. Kawalan Play/Pause asas
   navigator.mediaSession.setActionHandler("play", () => {
     unlockIOSAudio();
     audio.play().catch(console.warn);
   });
   navigator.mediaSession.setActionHandler("pause", () => {
-    audio.pause();
+    audio.pause();[cite: 1]
   });
+
+  // 3. Matikan pengendali skip saat supaya iOS padam butang 10 saat podcast
+  const disabledActions = [
+    "seekforward",
+    "seekbackward",
+    "skipad"
+  ];
+  disabledActions.forEach(action => {
+    try {
+      navigator.mediaSession.setActionHandler(action, null);
+    } catch (e) {}
+  });
+
+  // 4. Kekalkan kawalan garisan masa (scrubber)
   try {
     navigator.mediaSession.setActionHandler("seekto", (details) => {
-      if (details.seekTime && !isNaN(details.seekTime)) {
+      if (details.seekTime !== undefined && !isNaN(details.seekTime)) {
         audio.currentTime = details.seekTime;
       }
     });
@@ -1076,323 +1098,325 @@ function setupMediaSessionHandlers() {
 
 // ====== PLAYBACK ENGINE & PREFETCH ======
 function driveMediaUrl(trackId) {
-  return `https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`;
+  return `https://www.googleapis.com/drive/v3/files/${trackId}?alt=media`;[cite: 1]
 }
 
 function cacheTrack(trackId, blob) {
-  if (!blob) return;
-  if (blobCache.has(trackId)) blobCache.delete(trackId);
-  blobCache.set(trackId, blob);
-  while (blobCache.size > MAX_BLOB_CACHE) {
-    const oldestKey = blobCache.keys().next().value;
-    blobCache.delete(oldestKey);
+  if (!blob) return;[cite: 1]
+  if (blobCache.has(trackId)) blobCache.delete(trackId);[cite: 1]
+  blobCache.set(trackId, blob);[cite: 1]
+  while (blobCache.size > MAX_BLOB_CACHE) {[cite: 1]
+    const oldestKey = blobCache.keys().next().value;[cite: 1]
+    blobCache.delete(oldestKey);[cite: 1]
   }
 }
 
 function getCachedTrack(trackId) {
-  const blob = blobCache.get(trackId);
-  if (!blob) return null;
-  blobCache.delete(trackId);
-  blobCache.set(trackId, blob);
-  return blob;
+  const blob = blobCache.get(trackId);[cite: 1]
+  if (!blob) return null;[cite: 1]
+  blobCache.delete(trackId);[cite: 1]
+  blobCache.set(trackId, blob);[cite: 1]
+  return blob;[cite: 1]
 }
 
 async function fetchFullTrack(trackId, signal) {
-  const cached = getCachedTrack(trackId);
-  if (cached) return cached;
+  const cached = getCachedTrack(trackId);[cite: 1]
+  if (cached) return cached;[cite: 1]
 
-  if (prefetchPromises.has(trackId)) {
-    const blob = await prefetchPromises.get(trackId);
-    if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");
-    if (!blob) throw new Error("Prefetch returned no audio");
-    return blob;
+  if (prefetchPromises.has(trackId)) {[cite: 1]
+    const blob = await prefetchPromises.get(trackId);[cite: 1]
+    if (signal && signal.aborted) throw new DOMException("Aborted", "AbortError");[cite: 1]
+    if (!blob) throw new Error("Prefetch returned no audio");[cite: 1]
+    return blob;[cite: 1]
   }
 
-  const res = await fetch(driveMediaUrl(trackId), {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    signal
+  const res = await fetch(driveMediaUrl(trackId), {[cite: 1]
+    headers: { Authorization: `Bearer ${accessToken}` },[cite: 1]
+    signal[cite: 1]
   });
 
-  if (!res.ok) throw new Error(`Track fetch failed: HTTP ${res.status}`);
-  const blob = await res.blob();
-  if (!blob || !blob.size) throw new Error("Empty audio file");
+  if (!res.ok) throw new Error(`Track fetch failed: HTTP ${res.status}`);[cite: 1]
+  const blob = await res.blob();[cite: 1]
+  if (!blob || !blob.size) throw new Error("Empty audio file");[cite: 1]
 
-  cacheTrack(trackId, blob);
-  return blob;
+  cacheTrack(trackId, blob);[cite: 1]
+  return blob;[cite: 1]
 }
 
 function removeQueuedPrefetch(trackId) {
-  prefetchQueue = prefetchQueue.filter(item => item.trackId !== trackId);
+  prefetchQueue = prefetchQueue.filter(item => item.trackId !== trackId);[cite: 1]
 }
 
 function prefetchTrack(trackId, priority = 0) {
-  if (!trackId) return Promise.resolve(null);
-  const cached = getCachedTrack(trackId);
-  if (cached) return Promise.resolve(cached);
+  if (!trackId) return Promise.resolve(null);[cite: 1]
+  const cached = getCachedTrack(trackId);[cite: 1]
+  if (cached) return Promise.resolve(cached);[cite: 1]
 
-  if (prefetchPromises.has(trackId)) {
-    return prefetchPromises.get(trackId);
+  if (prefetchPromises.has(trackId)) {[cite: 1]
+    return prefetchPromises.get(trackId);[cite: 1]
   }
 
-  let resolvePromise, rejectPromise;
-  const promise = new Promise((resolve, reject) => {
-    resolvePromise = resolve;
-    rejectPromise = reject;
+  let resolvePromise, rejectPromise;[cite: 1]
+  const promise = new Promise((resolve, reject) => {[cite: 1]
+    resolvePromise = resolve;[cite: 1]
+    rejectPromise = reject;[cite: 1]
   });
 
-  prefetchPromises.set(trackId, promise);
-  removeQueuedPrefetch(trackId);
-  prefetchQueue.push({ trackId, priority, resolvePromise, rejectPromise });
-  prefetchQueue.sort((a, b) => b.priority - a.priority);
-  runPrefetchWorker();
+  prefetchPromises.set(trackId, promise);[cite: 1]
+  removeQueuedPrefetch(trackId);[cite: 1]
+  prefetchQueue.push({ trackId, priority, resolvePromise, rejectPromise });[cite: 1]
+  prefetchQueue.sort((a, b) => b.priority - a.priority);[cite: 1]
+  runPrefetchWorker();[cite: 1]
 
-  return promise;
+  return promise;[cite: 1]
 }
 
 async function runPrefetchWorker() {
-  if (prefetchWorkerRunning) return;
-  prefetchWorkerRunning = true;
+  if (prefetchWorkerRunning) return;[cite: 1]
+  prefetchWorkerRunning = true;[cite: 1]
 
   try {
-    while (prefetchQueue.length) {
-      const job = prefetchQueue.shift();
-      if (!job) continue;
+    while (prefetchQueue.length) {[cite: 1]
+      const job = prefetchQueue.shift();[cite: 1]
+      if (!job) continue;[cite: 1]
 
-      const { trackId, resolvePromise, rejectPromise } = job;
-      const cached = getCachedTrack(trackId);
-      if (cached) {
-        prefetchPromises.delete(trackId);
-        if (resolvePromise) resolvePromise(cached);
-        continue;
+      const { trackId, resolvePromise, rejectPromise } = job;[cite: 1]
+      const cached = getCachedTrack(trackId);[cite: 1]
+      if (cached) {[cite: 1]
+        prefetchPromises.delete(trackId);[cite: 1]
+        if (resolvePromise) resolvePromise(cached);[cite: 1]
+        continue;[cite: 1]
       }
 
-      const controller = new AbortController();
-      prefetchControllers.set(trackId, controller);
+      const controller = new AbortController();[cite: 1]
+      prefetchControllers.set(trackId, controller);[cite: 1]
 
       try {
-        const res = await fetch(driveMediaUrl(trackId), {
-          headers: { Authorization: `Bearer ${accessToken}` },
-          signal: controller.signal
+        const res = await fetch(driveMediaUrl(trackId), {[cite: 1]
+          headers: { Authorization: `Bearer ${accessToken}` },[cite: 1]
+          signal: controller.signal[cite: 1]
         });
 
-        if (!res.ok) throw new Error(`Prefetch failed: HTTP ${res.status}`);
-        const blob = await res.blob();
-        if (!blob || !blob.size) throw new Error("Empty prefetched audio");
+        if (!res.ok) throw new Error(`Prefetch failed: HTTP ${res.status}`);[cite: 1]
+        const blob = await res.blob();[cite: 1]
+        if (!blob || !blob.size) throw new Error("Empty prefetched audio");[cite: 1]
 
-        cacheTrack(trackId, blob);
-        if (resolvePromise) resolvePromise(blob);
+        cacheTrack(trackId, blob);[cite: 1]
+        if (resolvePromise) resolvePromise(blob);[cite: 1]
       } catch (e) {
-        if (e.name !== "AbortError") {
-          console.warn("Prefetch failed", trackId, e);
+        if (e.name !== "AbortError") {[cite: 1]
+          console.warn("Prefetch failed", trackId, e);[cite: 1]
         }
-        if (rejectPromise) rejectPromise(e);
+        if (rejectPromise) rejectPromise(e);[cite: 1]
       } finally {
-        prefetchControllers.delete(trackId);
-        prefetchPromises.delete(trackId);
+        prefetchControllers.delete(trackId);[cite: 1]
+        prefetchPromises.delete(trackId);[cite: 1]
       }
     }
   } finally {
-    prefetchWorkerRunning = false;
+    prefetchWorkerRunning = false;[cite: 1]
   }
 }
 
 function cancelUnusedPrefetches() {
-  const wanted = new Set();
-  const nextIdx = getNextTrackIndex();
-  const prevIdx = getPrevTrackIndex();
+  const wanted = new Set();[cite: 1]
+  const nextIdx = getNextTrackIndex();[cite: 1]
+  const prevIdx = getPrevTrackIndex();[cite: 1]
 
-  if (nextIdx !== -1 && playQueue[nextIdx]) wanted.add(playQueue[nextIdx].id);
-  if (prevIdx !== -1 && playQueue[prevIdx]) wanted.add(playQueue[prevIdx].id);
+  if (nextIdx !== -1 && playQueue[nextIdx]) wanted.add(playQueue[nextIdx].id);[cite: 1]
+  if (prevIdx !== -1 && playQueue[prevIdx]) wanted.add(playQueue[prevIdx].id);[cite: 1]
 
-  prefetchQueue = prefetchQueue.filter(job => wanted.has(job.trackId));
+  prefetchQueue = prefetchQueue.filter(job => wanted.has(job.trackId));[cite: 1]
 
-  for (const [trackId, controller] of prefetchControllers) {
-    if (!wanted.has(trackId)) controller.abort();
+  for (const [trackId, controller] of prefetchControllers) {[cite: 1]
+    if (!wanted.has(trackId)) controller.abort();[cite: 1]
   }
 }
 
 function prepareSurroundingTracks() {
-  const nextIdx = getNextTrackIndex();
-  const prevIdx = getPrevTrackIndex();
+  const nextIdx = getNextTrackIndex();[cite: 1]
+  const prevIdx = getPrevTrackIndex();[cite: 1]
 
-  if (nextIdx !== -1 && playQueue[nextIdx]) {
-    prefetchTrack(playQueue[nextIdx].id, 100);
+  if (nextIdx !== -1 && playQueue[nextIdx]) {[cite: 1]
+    prefetchTrack(playQueue[nextIdx].id, 100);[cite: 1]
   }
-  if (prevIdx !== -1 && playQueue[prevIdx]) {
-    prefetchTrack(playQueue[prevIdx].id, 10);
+  if (prevIdx !== -1 && playQueue[prevIdx]) {[cite: 1]
+    prefetchTrack(playQueue[prevIdx].id, 10);[cite: 1]
   }
-  cancelUnusedPrefetches();
+  cancelUnusedPrefetches();[cite: 1]
 }
 
 function schedulePrefetch(delay = 50) {
-  clearTimeout(prefetchTimer);
-  prefetchTimer = setTimeout(() => {
-    prepareSurroundingTracks();
-  }, delay);
+  clearTimeout(prefetchTimer);[cite: 1]
+  prefetchTimer = setTimeout(() => {[cite: 1]
+    prepareSurroundingTracks();[cite: 1]
+  }, delay);[cite: 1]
 }
 
 // ====== PLAY QUEUE TRACK (IOS SAFE) ======
 async function playQueueTrack(idx) {
-  if (idx < 0 || idx >= playQueue.length) return;
+  if (idx < 0 || idx >= playQueue.length) return;[cite: 1]
 
   unlockIOSAudio();
 
-  const track = playQueue[idx];
-  if (!track || !track.id) return;
+  const track = playQueue[idx];[cite: 1]
+  if (!track || !track.id) return;[cite: 1]
 
-  const myToken = ++loadToken;
-  queueIndex = idx;
-  currentPlayingId = track.id;
+  const myToken = ++loadToken;[cite: 1]
+  queueIndex = idx;[cite: 1]
+  currentPlayingId = track.id;[cite: 1]
 
-  if (currentFetchController) currentFetchController.abort();
-  currentFetchController = new AbortController();
-  const fetchSignal = currentFetchController.signal;
+  if (currentFetchController) currentFetchController.abort();[cite: 1]
+  currentFetchController = new AbortController();[cite: 1]
+  const fetchSignal = currentFetchController.signal;[cite: 1]
 
-  clearTimeout(prefetchTimer);
-  removeQueuedPrefetch(track.id);
+  clearTimeout(prefetchTimer);[cite: 1]
+  removeQueuedPrefetch(track.id);[cite: 1]
 
-  const parsed = parseArtistTitle(track.name);
+  const parsed = parseArtistTitle(track.name);[cite: 1]
 
-  $("mini-player").style.display = "flex";
-  resetFields(parsed.title, parsed.artist);
-  updateMediaSession(parsed.title, parsed.artist, null);
-  if (inQueueMode) renderQueueList();
-  renderList();
+  $("mini-player").style.display = "flex";[cite: 1]
+  resetFields(parsed.title, parsed.artist);[cite: 1]
+  updateMediaSession(parsed.title, parsed.artist, null);[cite: 1]
+  setupMediaSessionHandlers(); // Panggil semula untuk sahkan butang Next/Prev pada skrin kunci
+  if (inQueueMode) renderQueueList();[cite: 1]
+  renderList();[cite: 1]
 
   try {
-    const blob = await fetchFullTrack(track.id, fetchSignal);
-    if (fetchSignal.aborted || myToken !== loadToken) return;
+    const blob = await fetchFullTrack(track.id, fetchSignal);[cite: 1]
+    if (fetchSignal.aborted || myToken !== loadToken) return;[cite: 1]
 
-    if (currentAudioBlobUrl) {
-      URL.revokeObjectURL(currentAudioBlobUrl);
+    if (currentAudioBlobUrl) {[cite: 1]
+      URL.revokeObjectURL(currentAudioBlobUrl);[cite: 1]
     }
 
-    currentAudioBlobUrl = URL.createObjectURL(blob);
-    audio.src = currentAudioBlobUrl;
+    currentAudioBlobUrl = URL.createObjectURL(blob);[cite: 1]
+    audio.src = currentAudioBlobUrl;[cite: 1]
 
-    await audio.play();
-    if (fetchSignal.aborted || myToken !== loadToken) return;
+    await audio.play();[cite: 1]
+    if (fetchSignal.aborted || myToken !== loadToken) return;[cite: 1]
 
-    isPlaying = true;
-    updatePlayVisuals();
+    isPlaying = true;[cite: 1]
+    updatePlayVisuals();[cite: 1]
 
-    applyTags(blob, parsed.title, parsed.artist, myToken);
+    applyTags(blob, parsed.title, parsed.artist, myToken);[cite: 1]
     schedulePrefetch(50);
   } catch (err) {
-    if (err.name === "AbortError" || fetchSignal.aborted || myToken !== loadToken) return;
+    if (err.name === "AbortError" || fetchSignal.aborted || myToken !== loadToken) return;[cite: 1]
 
-    console.error("Playback error:", err);
-    isPlaying = false;
-    updatePlayVisuals();
-    $("mini-sub").textContent = "Error loading track";
-    $("full-artist").textContent = "Playback error";
+    console.error("Playback error:", err);[cite: 1]
+    isPlaying = false;[cite: 1]
+    updatePlayVisuals();[cite: 1]
+    $("mini-sub").textContent = "Error loading track";[cite: 1]
+    $("full-artist").textContent = "Playback error";[cite: 1]
   }
 }
 
 function resetFields(title, artist) {
-  $("mini-name").textContent = title;
-  $("mini-sub").textContent = artist;
-  $("full-name").textContent = title;
-  $("full-artist").textContent = artist;
-  $("queue-cur-name").textContent = title;
-  $("queue-cur-artist").textContent = artist;
-  setArtwork(null);
-  $("mini-progress-bar").style.width = "0%";
-  $("seek").value = 0;
-  $("time-cur").textContent = "0:00";
-  $("time-dur").textContent = "0:00";
+  $("mini-name").textContent = title;[cite: 1]
+  $("mini-sub").textContent = artist;[cite: 1]
+  $("full-name").textContent = title;[cite: 1]
+  $("full-artist").textContent = artist;[cite: 1]
+  $("queue-cur-name").textContent = title;[cite: 1]
+  $("queue-cur-artist").textContent = artist;[cite: 1]
+  setArtwork(null);[cite: 1]
+  $("mini-progress-bar").style.width = "0%";[cite: 1]
+  $("seek").value = 0;[cite: 1]
+  $("time-cur").textContent = "0:00";[cite: 1]
+  $("time-dur").textContent = "0:00";[cite: 1]
 }
 
 function setArtwork(url) {
-  const mImg = $("mini-art-img"), mFb = $("mini-fallback");
-  const lImg = $("large-art-img"), lFb = $("large-fallback");
-  const qImg = $("queue-mini-art");
-  const bg = $("ambient-backdrop");
+  const mImg = $("mini-art-img"), mFb = $("mini-fallback");[cite: 1]
+  const lImg = $("large-art-img"), lFb = $("large-fallback");[cite: 1]
+  const qImg = $("queue-mini-art");[cite: 1]
+  const bg = $("ambient-backdrop");[cite: 1]
 
-  if (url) {
-    mImg.src = url; mImg.style.display = "block"; mFb.style.display = "none";
-    lImg.src = url; lImg.style.display = "block"; lFb.style.display = "none";
-    qImg.src = url;
-    bg.style.backgroundImage = `url('${url}')`;
+  if (url) {[cite: 1]
+    mImg.src = url; mImg.style.display = "block"; mFb.style.display = "none";[cite: 1]
+    lImg.src = url; lImg.style.display = "block"; lFb.style.display = "none";[cite: 1]
+    qImg.src = url;[cite: 1]
+    bg.style.backgroundImage = `url('${url}')`;[cite: 1]
   } else {
-    mImg.style.display = "none"; mFb.style.display = "block";
-    lImg.style.display = "none"; lFb.style.display = "block";
-    qImg.src = "";
-    bg.style.backgroundImage = "none";
+    mImg.style.display = "none"; mFb.style.display = "block";[cite: 1]
+    lImg.style.display = "none"; lFb.style.display = "block";[cite: 1]
+    qImg.src = "";[cite: 1]
+    bg.style.backgroundImage = "none";[cite: 1]
   }
 }
 
 function readTagsBlob(blob) {
-  return new Promise(resolve => {
-    if (typeof jsmediatags === "undefined") return resolve(null);
-    jsmediatags.read(blob, {
-      onSuccess: tag => resolve(tag.tags || null),
-      onError: () => resolve(null)
+  return new Promise(resolve => {[cite: 1]
+    if (typeof jsmediatags === "undefined") return resolve(null);[cite: 1]
+    jsmediatags.read(blob, {[cite: 1]
+      onSuccess: tag => resolve(tag.tags || null),[cite: 1]
+      onError: () => resolve(null)[cite: 1]
     });
   });
 }
 
 async function applyTags(blob, fallbackTitle, fallbackArtist, myToken) {
-  const tags = await readTagsBlob(blob);
-  if (myToken !== loadToken) return;
+  const tags = await readTagsBlob(blob);[cite: 1]
+  if (myToken !== loadToken) return;[cite: 1]
 
-  const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackTitle;
-  const artist = (tags && tags.artist && tags.artist.trim()) ? tags.artist.trim() : fallbackArtist;
+  const title = (tags && tags.title && tags.title.trim()) ? tags.title.trim() : fallbackTitle;[cite: 1]
+  const artist = (tags && tags.artist && tags.artist.trim()) ? tags.artist.trim() : fallbackArtist;[cite: 1]
 
-  $("mini-name").textContent = title;
-  $("mini-sub").textContent = artist;
-  $("full-name").textContent = title;
-  $("full-artist").textContent = artist;
-  $("queue-cur-name").textContent = title;
-  $("queue-cur-artist").textContent = artist;
+  $("mini-name").textContent = title;[cite: 1]
+  $("mini-sub").textContent = artist;[cite: 1]
+  $("full-name").textContent = title;[cite: 1]
+  $("full-artist").textContent = artist;[cite: 1]
+  $("queue-cur-name").textContent = title;[cite: 1]
+  $("queue-cur-artist").textContent = artist;[cite: 1]
 
-  let artUrl = null;
-  if (tags && tags.picture) {
+  let artUrl = null;[cite: 1]
+  if (tags && tags.picture) {[cite: 1]
     try {
-      const { data, format } = tags.picture;
-      const artBlob = new Blob([new Uint8Array(data)], { type: format || "image/jpeg" });
-      if (currentArtBlobUrl) URL.revokeObjectURL(currentArtBlobUrl);
-      currentArtBlobUrl = URL.createObjectURL(artBlob);
-      artUrl = currentArtBlobUrl;
-      setArtwork(artUrl);
-    } catch(e) {
-      setArtwork(null);
+      const { data, format } = tags.picture;[cite: 1]
+      const artBlob = new Blob([new Uint8Array(data)], { type: format || "image/jpeg" });[cite: 1]
+      if (currentArtBlobUrl) URL.revokeObjectURL(currentArtBlobUrl);[cite: 1]
+      currentArtBlobUrl = URL.createObjectURL(artBlob);[cite: 1]
+      artUrl = currentArtBlobUrl;[cite: 1]
+      setArtwork(artUrl);[cite: 1]
+    } catch(e) {[cite: 1]
+      setArtwork(null);[cite: 1]
     }
   } else {
-    setArtwork(null);
+    setArtwork(null);[cite: 1]
   }
 
-  updateMediaSession(title, artist, artUrl);
+  updateMediaSession(title, artist, artUrl);[cite: 1]
+  setupMediaSessionHandlers();
 }
 
 function updatePlayVisuals() {
-  $("mini-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;
-  $("big-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;
-  $("art-large-box").classList.toggle("paused", !isPlaying);
+  $("mini-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;[cite: 1]
+  $("big-play-icon").innerHTML = isPlaying ? PAUSE_ICON : PLAY_ICON;[cite: 1]
+  $("art-large-box").classList.toggle("paused", !isPlaying);[cite: 1]
 }
 
 function togglePlay() {
   unlockIOSAudio();
-  if (queueIndex === -1) return;
-  if (isPlaying) {
-    audio.pause();
+  if (queueIndex === -1) return;[cite: 1]
+  if (isPlaying) {[cite: 1]
+    audio.pause();[cite: 1]
   } else {
-    audio.play().catch(err => console.warn("Play blocked/failed:", err));
+    audio.play().catch(err => console.warn("Play blocked/failed:", err));[cite: 1]
   }
 }
 
 function playNext() {
-  const next = getNextTrackIndex();
-  if (next !== -1) playQueueTrack(next);
+  const next = getNextTrackIndex();[cite: 1]
+  if (next !== -1) playQueueTrack(next);[cite: 1]
 }
 
 function playPrev() {
-  if (audio.currentTime > 3) {
-    audio.currentTime = 0;
-    return;
+  if (audio.currentTime > 3) {[cite: 1]
+    audio.currentTime = 0;[cite: 1]
+    return;[cite: 1]
   }
-  const prev = getPrevTrackIndex();
-  if (prev !== -1) playQueueTrack(prev);
+  const prev = getPrevTrackIndex();[cite: 1]
+  if (prev !== -1) playQueueTrack(prev);[cite: 1]
 }
 
 // ====== EVENT LISTENERS ======
@@ -1401,39 +1425,39 @@ $("mini-play").addEventListener("click", (e) => {
   togglePlay();
 });
 
-$("play-big").addEventListener("click", togglePlay);
-$("next-btn").addEventListener("click", playNext);
-$("prev-btn").addEventListener("click", playPrev);
+$("play-big").addEventListener("click", togglePlay);[cite: 1]
+$("next-btn").addEventListener("click", playNext);[cite: 1]
+$("prev-btn").addEventListener("click", playPrev);[cite: 1]
 
-audio.addEventListener("play", () => {
-  isPlaying = true;
-  updatePlayVisuals();
+audio.addEventListener("play", () => {[cite: 1]
+  isPlaying = true;[cite: 1]
+  updatePlayVisuals();[cite: 1]
 });
 
-audio.addEventListener("pause", () => {
-  isPlaying = false;
-  updatePlayVisuals();
+audio.addEventListener("pause", () => {[cite: 1]
+  isPlaying = false;[cite: 1]
+  updatePlayVisuals();[cite: 1]
 });
 
-audio.addEventListener("ended", () => {
-  if (loopMode === 2) {
-    audio.currentTime = 0;
-    audio.play().catch(() => {});
+audio.addEventListener("ended", () => {[cite: 1]
+  if (loopMode === 2) {[cite: 1]
+    audio.currentTime = 0;[cite: 1]
+    audio.play().catch(() => {});[cite: 1]
   } else {
-    playNext();
+    playNext();[cite: 1]
   }
 });
 
-audio.addEventListener("timeupdate", () => {
-  const duration = audio.duration || 0;
-  const current = audio.currentTime || 0;
+audio.addEventListener("timeupdate", () => {[cite: 1]
+  const duration = audio.duration || 0;[cite: 1]
+  const current = audio.currentTime || 0;[cite: 1]
   if (!isSeeking) {
     $("time-cur").textContent = formatTime(current);
     $("time-dur").textContent = duration > 0 ? "-" + formatTime(duration - current) : "0:00";
-    if (duration > 0) {
-      const pct = Math.min(100, Math.max(0, (current / duration) * 100));
-      $("mini-progress-bar").style.width = pct + "%";
-      $("seek").value = pct;
+    if (duration > 0) {[cite: 1]
+      const pct = Math.min(100, Math.max(0, (current / duration) * 100));[cite: 1]
+      $("mini-progress-bar").style.width = pct + "%";[cite: 1]
+      $("seek").value = pct;[cite: 1]
     }
   }
 });
