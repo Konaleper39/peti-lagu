@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google GIS dimuatkan dengan callback onload rasmi supaya tak freeze kat iPhone -->
+<script src="https://accounts.google.com/gsi/client" onload="initGoogleClient()" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
 <style>
   :root {
@@ -517,20 +518,24 @@ let audioCtx = null;
 let silentSource = null;
 
 function unlockIOSAudio() {
-  if (!audioCtx) {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (AudioContextClass) {
-      audioCtx = new AudioContextClass();
-      const buffer = audioCtx.createBuffer(1, 1, 22050);
-      silentSource = audioCtx.createBufferSource();
-      silentSource.buffer = buffer;
-      silentSource.loop = true;
-      silentSource.connect(audioCtx.destination);
-      silentSource.start(0);
+  try {
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) {
+        audioCtx = new AudioContextClass();
+        const buffer = audioCtx.createBuffer(1, 1, 22050);
+        silentSource = audioCtx.createBufferSource();
+        silentSource.buffer = buffer;
+        silentSource.loop = true;
+        silentSource.connect(audioCtx.destination);
+        silentSource.start(0);
+      }
     }
-  }
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  } catch (e) {
+    console.warn("AudioContext setup:", e);
   }
 }
 
@@ -595,46 +600,58 @@ function formatTime(sec) {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
-// ====== AUTHENTICATION ======
+// ====== GOOGLE IDENTITY SERVICES INIT ======
+function initGoogleClient() {
+  try {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (resp) => {
+        if (resp.error) {
+          showState("state-error");
+          $("error-msg").textContent = "Sign in error: " + (resp.error_description || resp.error);
+          return;
+        }
+        accessToken = resp.access_token;
+        tokenExpiresAt = Date.now() + (parseInt(resp.expires_in || 3500, 10) * 1000);
+        localStorage.setItem("petilagu_token", accessToken);
+        localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());
+
+        if (authIntent === "track" && queueIndex !== -1) {
+          playQueueTrack(queueIndex);
+        } else if (authIntent === "folder") {
+          loadFolder(currentFolderId());
+        } else {
+          onSignedIn();
+        }
+      }
+    });
+
+    if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {
+      onSignedIn();
+    }
+  } catch (e) {
+    console.error("GIS initialization failed:", e);
+  }
+}
+
+// Semak sekiranya GIS dah load sebelum initGoogleClient sempat jalan
 window.addEventListener("load", () => {
   setupMediaSessionHandlers();[cite: 1]
   if (isShuffle) $("shuffle-btn").classList.add("active");[cite: 1]
   applyLoopUI();[cite: 1]
 
-  tokenClient = google.accounts.oauth2.initTokenClient({[cite: 1]
-    client_id: CLIENT_ID,[cite: 1]
-    scope: SCOPES,[cite: 1]
-    callback: (resp) => {[cite: 1]
-      if (resp.error) {[cite: 1]
-        showState("state-error");[cite: 1]
-        $("error-msg").textContent = "Sign in failed. Please try again.";[cite: 1]
-        return;[cite: 1]
-      }
-      accessToken = resp.access_token;[cite: 1]
-      tokenExpiresAt = Date.now() + (parseInt(resp.expires_in || 3500, 10) * 1000);[cite: 1]
-      localStorage.setItem("petilagu_token", accessToken);[cite: 1]
-      localStorage.setItem("petilagu_token_exp", tokenExpiresAt.toString());[cite: 1]
-
-      if (authIntent === "track" && queueIndex !== -1) {[cite: 1]
-        playQueueTrack(queueIndex);[cite: 1]
-      } else if (authIntent === "folder") {[cite: 1]
-        loadFolder(currentFolderId());[cite: 1]
-      } else {
-        onSignedIn();[cite: 1]
-      }
-    }
-  });
-
-  if (accessToken && Date.now() < (tokenExpiresAt - 60000)) {[cite: 1]
-    onSignedIn();[cite: 1]
-  } else if (accessToken) {[cite: 1]
-    authIntent = "initial";[cite: 1]
-    tokenClient.requestAccessToken({ prompt: "" });[cite: 1]
+  if (typeof google !== "undefined" && google.accounts && !tokenClient) {
+    initGoogleClient();
   }
 });
 
-$("signin-btn").addEventListener("click", () => {[cite: 1]
-  unlockIOSAudio();
+// Butang Sign In bersih (tiada Web Audio context di sini supaya Safari tak sekat pop-up)
+$("signin-btn").addEventListener("click", () => {
+  if (!tokenClient) {
+    alert("Sistem Google sedang dimuat turun. Sila tunggu sebentar dan tekan semula.");
+    return;
+  }
   authIntent = "initial";[cite: 1]
   tokenClient.requestAccessToken({ prompt: accessToken ? "" : "consent" });[cite: 1]
 });
@@ -1239,7 +1256,6 @@ async function playQueueTrack(idx) {
 
   const parsed = parseArtistTitle(track.name);[cite: 1]
 
-  // Update visual data tanpa buang src (jangan bunuh audio session iOS)
   $("mini-player").style.display = "flex";[cite: 1]
   resetFields(parsed.title, parsed.artist);[cite: 1]
   updateMediaSession(parsed.title, parsed.artist, null);[cite: 1]
@@ -1402,7 +1418,6 @@ audio.addEventListener("pause", () => {[cite: 1]
   updatePlayVisuals();[cite: 1]
 });
 
-// Event kritikal: Memanggil lagu seterusnya secara langsung tanpa putus
 audio.addEventListener("ended", () => {[cite: 1]
   if (loopMode === 2) {[cite: 1]
     audio.currentTime = 0;[cite: 1]
